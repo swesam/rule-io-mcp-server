@@ -28,11 +28,15 @@ The order confirmation email typically includes:
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Order Confirmation"
-- \`trigger_tag\`: "<your order tag>"
-- \`subject\`: "Order {{${field}}} confirmed!"
-- \`template\`: An RCML document with a heading, body text referencing {{${field}}}, and a CTA button
-- \`sendout_type\`: "transactional"
+\`\`\`json
+{
+  "name": "Order Confirmation",
+  "trigger_tag": "shopify_order_created",
+  "subject": "Order {{${field}}} confirmed!",
+  "template": "<rcml><section><heading>Thank you for your order!</heading><text>Your order {{${field}}} has been confirmed and is being prepared.</text><text>Total: {{Order.TotalPrice}} {{Order.Currency}}</text><button href=\\"https://example.com/track\\">Track Your Order</button></section></rcml>",
+  "sendout_type": "transactional"
+}
+\`\`\`
 
 ### Merge tags:
 Common order merge tags: \`{{${field}}}\`, \`{{Order.TotalPrice}}\`, \`{{Order.Currency}}\`
@@ -76,7 +80,9 @@ Use \`rule_create_automation_email\` with:
 - \`template\`: RCML document with shipping details and tracking CTA
 - \`sendout_type\`: "transactional"
 
-💡 **Tip**: Pair this with an order confirmation email for a complete post-purchase flow.`;
+💡 **Tip**: Pair this with an order confirmation email for a complete post-purchase flow.
+
+💡 **Tip**: If you use Shopify, run the \`setup_shopify_integration\` prompt first to ensure field mappings are configured.`;
 }
 
 function abandonedCartPrompt(brandStyleId?: string, discountCode?: string): string {
@@ -119,7 +125,9 @@ Use \`rule_create_automation_email\` with:
 - \`template\`: RCML document with urgency copy and cart CTA
 - \`sendout_type\`: "marketing"
 
-💡 **Tip**: Abandoned cart emails perform best as a series (1h, 24h, 72h). Create multiple automations with different tags for each stage.`;
+💡 **Tip**: Abandoned cart emails perform best as a series (1h, 24h, 72h). Create multiple automations with different tags for each stage.
+
+💡 **Tip**: If you use Shopify, run the \`setup_shopify_integration\` prompt first to ensure field mappings are configured.`;
 }
 
 function orderCancellationPrompt(brandStyleId?: string): string {
@@ -157,7 +165,9 @@ Use \`rule_create_automation_email\` with:
 - \`trigger_tag\`: "<your cancellation tag>"
 - \`subject\`: "Your order has been cancelled"
 - \`template\`: RCML document with cancellation details and support CTA
-- \`sendout_type\`: "transactional"`;
+- \`sendout_type\`: "transactional"
+
+💡 **Tip**: If you use Shopify, run the \`setup_shopify_integration\` prompt first to ensure field mappings are configured.`;
 }
 
 // -- Hospitality prompt content builders --
@@ -314,7 +324,7 @@ Shopify data is synced to Rule.io subscriber fields. Common mappings:
 | Last Name | \`{{Customer.LastName}}\` |
 | Shipping Address | \`{{Order.ShippingAddress}}\` |
 
-Use \`rule_list_subscriber_fields\` to see all available fields in your account.
+To inspect available fields, use \`rule_get_subscriber\` with a known subscriber ID and examine the returned field structure.
 
 ### Step 3: Create your automations
 Recommended email automations for Shopify:
@@ -324,7 +334,7 @@ Recommended email automations for Shopify:
 4. **Order Cancellation** - Use \`create_order_cancellation_email\` prompt
 
 ### Step 4: Test your setup
-1. Use \`rule_list_automations\` to verify your automations were created
+1. Use \`rule_list_automails\` to verify your automations were created
 2. Place a test order in Shopify
 3. Check that the subscriber receives the triggered email
 4. Use \`rule_render_template\` with a subscriber ID to preview with real data
@@ -360,7 +370,7 @@ Bookzen syncs reservation data to Rule.io subscriber fields. Common mappings:
 | Confirmation # | \`{{Booking.ConfirmationNumber}}\` |
 | Guest First Name | \`{{Subscriber.FirstName}}\` |
 
-Use \`rule_list_subscriber_fields\` to see all available fields.
+To inspect available fields, use \`rule_get_subscriber\` with a known subscriber ID and examine the returned field structure.
 
 ### Step 3: Create your automations
 Recommended email automations for hospitality:
@@ -369,7 +379,7 @@ Recommended email automations for hospitality:
 3. **Post-Stay Feedback** - Use \`create_feedback_request_email\` prompt
 
 ### Step 4: Test your setup
-1. Use \`rule_list_automations\` to verify your automations were created
+1. Use \`rule_list_automails\` to verify your automations were created
 2. Create a test reservation in Bookzen
 3. Check that the guest subscriber receives the triggered email
 4. Use \`rule_render_template\` with a subscriber ID to preview with real data
