@@ -1,0 +1,70 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - 'LICENSE'
+      - '.gitignore'
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - '.claude/**'
+      - 'CLAUDE.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+jobs:
+  quality:
+    name: Quality Checks
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20, 22]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Clone rule-io-sdk
+        run: |
+          git clone --branch main --single-branch --depth 1 https://github.com/rulecom/rule-io-sdk.git ../rule-io-sdk
+
+      - name: Setup Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Build rule-io-sdk
+        run: |
+          cd ../rule-io-sdk
+          npm ci
+          npm run build
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run type-check
+
+      - name: Run tests
+        run: npm run test -- --passWithNoTests
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify dist outputs exist
+        run: |
+          test -f dist/index.js || (echo "Missing dist/index.js" && exit 1)
+          test -f dist/index.mjs || (echo "Missing dist/index.mjs" && exit 1)
+          test -f dist/index.d.ts || (echo "Missing dist/index.d.ts" && exit 1)
+          test -f dist/bin/rule-io-mcp.js || (echo "Missing dist/bin/rule-io-mcp.js" && exit 1)
+          echo "All dist outputs present"
