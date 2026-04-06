@@ -1,11 +1,14 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadConfig } from '../config.js';
 
 describe('loadConfig', () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
-    process.env = { ...originalEnv };
+    vi.stubEnv('RULE_IO_API_KEY', '');
+    vi.stubEnv('RULE_IO_DEBUG', '');
+    vi.stubEnv('RULE_IO_FIELD_GROUP_PREFIX', '');
+    vi.stubEnv('RULE_IO_BASE_URL_V2', '');
+    vi.stubEnv('RULE_IO_BASE_URL_V3', '');
+    // Delete them so loadConfig sees them as unset
     delete process.env.RULE_IO_API_KEY;
     delete process.env.RULE_IO_DEBUG;
     delete process.env.RULE_IO_FIELD_GROUP_PREFIX;
@@ -14,7 +17,7 @@ describe('loadConfig', () => {
   });
 
   afterEach(() => {
-    process.env = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   it('throws when RULE_IO_API_KEY is missing', () => {
