@@ -32,15 +32,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Clone rule-io-sdk
+        run: |
+          git clone --branch main --single-branch --depth 1 https://github.com/rulecom/rule-io-sdk.git ../rule-io-sdk
+
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            ../rule-io-sdk/package-lock.json
 
-      - name: Clone and build rule-io-sdk
+      - name: Build rule-io-sdk
         run: |
-          git clone https://github.com/rulecom/rule-io-sdk.git ../rule-io-sdk
           cd ../rule-io-sdk
           npm ci
           npm run build
