@@ -94,7 +94,7 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
       action: z.enum(['add', 'remove']).describe('"add" to add tags, "remove" to remove a tag'),
       tags: z
         .array(z.string())
-        .describe('Tag names to add or remove (remove only supports one tag at a time)'),
+        .describe('Tag names to add or remove. When removing, tags are removed one at a time sequentially.'),
       trigger_automation: z
         .enum(['force', 'reset'])
         .optional()
@@ -134,10 +134,15 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
       tags: z.array(z.string()).describe('Tag names to add or remove'),
       subscribers: z
         .array(
-          z.object({
-            email: z.string().email().optional().describe('Subscriber email'),
-            phone_number: z.string().optional().describe('Subscriber phone number'),
-          })
+          z
+            .object({
+              email: z.string().email().optional().describe('Subscriber email'),
+              phone_number: z.string().optional().describe('Subscriber phone number'),
+            })
+            .refine(
+              ({ email, phone_number }) => Boolean(email || phone_number),
+              'Each subscriber must include at least one of email or phone_number'
+            )
         )
         .describe('Subscribers to modify (provide email or phone_number for each)'),
       trigger_automation: z

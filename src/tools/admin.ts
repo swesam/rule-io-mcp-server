@@ -1,7 +1,17 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
+import { handleRuleError, jsonResult, errorResult } from '../util/errors.js';
+
+const subscriberIdentifier = z
+  .object({
+    email: z.string().optional().describe('Subscriber email'),
+    phone_number: z.string().optional().describe('Subscriber phone number'),
+  })
+  .refine(
+    ({ email, phone_number }) => Boolean(email || phone_number),
+    'Each subscriber must include at least one of email or phone_number'
+  );
 
 export function registerAdminTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -40,14 +50,14 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
         switch (action) {
           case 'create_from_domain': {
             if (!domain) {
-              return textResult('domain is required for create_from_domain action.');
+              return errorResult('domain is required for create_from_domain action.');
             }
             const result = await client.createBrandStyleFromDomain({ domain });
             return jsonResult(result);
           }
           case 'create_manual': {
             if (!name) {
-              return textResult('name is required for create_manual action.');
+              return errorResult('name is required for create_manual action.');
             }
             const result = await client.createBrandStyleManually({
               name,
@@ -55,8 +65,8 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
             return jsonResult(result);
           }
           case 'update': {
-            if (!id) {
-              return textResult('id is required for update action.');
+            if (id === undefined) {
+              return errorResult('id is required for update action.');
             }
             const update: Record<string, unknown> = {};
             if (name) update.name = name;
@@ -64,8 +74,8 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
             return jsonResult(result);
           }
           case 'delete': {
-            if (!id) {
-              return textResult('id is required for delete action.');
+            if (id === undefined) {
+              return errorResult('id is required for delete action.');
             }
             const result = await client.deleteBrandStyle(id);
             return jsonResult(result);
@@ -82,13 +92,8 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
     'Suppress subscribers from receiving emails. This is an async operation processed in the background (max 1000 per call).',
     {
       subscribers: z
-        .array(
-          z.object({
-            email: z.string().optional().describe('Subscriber email'),
-            phone_number: z.string().optional().describe('Subscriber phone number'),
-          })
-        )
-        .describe('Subscribers to suppress'),
+        .array(subscriberIdentifier)
+        .describe('Subscribers to suppress (each must have email or phone_number)'),
     },
     async ({ subscribers }) => {
       try {
@@ -105,13 +110,8 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
     'Remove suppression from subscribers, allowing them to receive emails again. Async operation (max 1000 per call).',
     {
       subscribers: z
-        .array(
-          z.object({
-            email: z.string().optional().describe('Subscriber email'),
-            phone_number: z.string().optional().describe('Subscriber phone number'),
-          })
-        )
-        .describe('Subscribers to unsuppress'),
+        .array(subscriberIdentifier)
+        .describe('Subscribers to unsuppress (each must have email or phone_number)'),
     },
     async ({ subscribers }) => {
       try {

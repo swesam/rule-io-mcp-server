@@ -9,8 +9,7 @@
     "rule-io-mcp-server": "./dist/bin/rule-io-mcp.js"
   },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
     "build": "tsup",
