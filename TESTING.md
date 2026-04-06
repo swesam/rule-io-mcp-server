@@ -28,6 +28,14 @@ Manual and automated testing instructions for the rule-io-mcp-server.
 - **Node.js** >= 20
 - **npm** >= 9
 - A **Rule.io API key** (set as `RULE_IO_API_KEY`)
+- The **rule-io-sdk** sibling dependency must be available locally (this project uses `file:../rule-io-sdk`):
+
+```bash
+# Clone and build the SDK if you haven't already
+git clone https://github.com/swesam/rule-io-sdk.git ../rule-io-sdk
+cd ../rule-io-sdk && npm install && npm run build && cd -
+```
+
 - The project must be built before running the inspector:
 
 ```bash
