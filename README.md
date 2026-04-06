@@ -183,11 +183,11 @@ Pre-built workflow guides that walk the AI through multi-step email setups.
 The AI calls two tools in sequence:
 
 ```jsonc
-// 1. Create the subscriber
+// 1. rule_create_subscriber
 { "email": "jane@example.com", "language": "en" }
 // → { "id": 42, "email": "jane@example.com", ... }
 
-// 2. Tag them
+// 2. rule_manage_subscriber_tags
 { "subscriber": "jane@example.com", "action": "add", "tags": ["VIP"] }
 // → { "message": "Tags added successfully" }
 ```
@@ -206,7 +206,7 @@ The AI uses the **`create_abandoned_cart_email`** prompt for step-by-step guidan
   "template": { "type": "rcml", "content": [{ "type": "section", "content": ["..."] }] },
   "sendout_type": "marketing"
 }
-// → { "automail_id": 101, "message_id": 202, "template_id": 303, "dynamic_set_id": 404 }
+// → { "success": true, "automail_id": 101, "message_id": 202, "template_id": 303, "dynamic_set_id": 404 }
 ```
 
 ### Check campaign performance
