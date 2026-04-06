@@ -19,7 +19,7 @@
     "test:watch": "vitest",
     "type-check": "tsc --noEmit",
     "start": "node dist/index.js",
-    "prepare": "[ -f node_modules/.bin/tsup ] && npm run build || true"
+    "prepare": "node -e \"try{require('tsup');require('child_process').execSync('npm run build',{stdio:'inherit'})}catch{}\""
   },
   "keywords": [
     "mcp",

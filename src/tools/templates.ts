@@ -1,27 +1,37 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { RuleClient } from 'rule-io-sdk';
+import { RuleApiError, type RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
 
 export function registerTemplateTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_template',
-    'Create an RCML email template linked to a message. Template names must be unique in Rule.io — a timestamp is automatically appended to avoid conflicts.',
+    'Create an RCML email template linked to a message. If the name is already taken, a timestamp suffix is appended automatically.',
     {
       name: z.string().describe('Template name'),
       message_id: z.number().describe('Message ID to link this template to'),
-      template: z.record(z.any()).describe('RCML document object for the email content'),
+      content: z.record(z.any()).describe('RCML document object for the email content'),
     },
-    async ({ name, message_id, template }) => {
+    async ({ name, message_id, content }) => {
       try {
-        const uniqueName = `${name} - ${Date.now()}`;
-        const result = await client.createTemplate({
-          name: uniqueName,
+        const templatePayload = {
+          name,
           message_id,
-          message_type: 'email',
-          template: template as Parameters<typeof client.createTemplate>[0]['template'],
-        });
-        return jsonResult(result);
+          message_type: 'email' as const,
+          template: content as Parameters<typeof client.createTemplate>[0]['template'],
+        };
+        try {
+          const result = await client.createTemplate(templatePayload);
+          return jsonResult(result);
+        } catch (error) {
+          // Retry with timestamp if name conflict
+          if (error instanceof RuleApiError && error.isValidationError()) {
+            templatePayload.name = `${name} - ${Date.now()}`;
+            const result = await client.createTemplate(templatePayload);
+            return jsonResult(result);
+          }
+          throw error;
+        }
       } catch (error) {
         return handleRuleError(error);
       }

@@ -25,13 +25,10 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
     },
     async ({ date_from, date_to, object_type, object_ids, metrics }) => {
       try {
-        const params =
+        const result =
           object_type && object_ids && metrics
-            ? { date_from, date_to, object_type, object_ids, metrics }
-            : { date_from, date_to };
-        const result = await client.getAnalytics(
-          params as Parameters<typeof client.getAnalytics>[0]
-        );
+            ? await client.getAnalytics({ date_from, date_to, object_type, object_ids, metrics } as Parameters<typeof client.getAnalytics>[0])
+            : await client.getAnalytics({ date_from, date_to });
         return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);

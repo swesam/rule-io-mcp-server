@@ -136,9 +136,9 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         .optional()
         .describe('Change email type'),
       trigger_type: z
-        .enum(['TAG', 'SEGMENT'])
+        .enum(['tag', 'segment'])
         .optional()
-        .describe('Trigger type (must be uppercase)'),
+        .describe('Trigger type'),
       trigger_id: z.number().optional().describe('Tag or segment ID for the trigger'),
     },
     async ({ id, active, sendout_type, trigger_type, trigger_id }) => {
@@ -147,7 +147,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         if (active !== undefined) update.active = active;
         if (sendout_type) update.sendout_type = sendout_type === 'marketing' ? 1 : 2;
         if (trigger_type && trigger_id) {
-          update.trigger = { type: trigger_type, id: trigger_id };
+          update.trigger = { type: trigger_type.toUpperCase(), id: trigger_id };
         }
 
         const result = await client.updateAutomail(id, update);
