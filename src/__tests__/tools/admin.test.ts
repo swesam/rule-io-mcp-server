@@ -103,4 +103,43 @@ describe('admin tools', () => {
       expect(result.content[0].text).toContain('domain is required');
     });
   });
+
+  describe('rule_suppress_subscribers', () => {
+    it('suppresses subscribers successfully', async () => {
+      const response = { queued: 2 };
+      mocks.createSuppressions.mockResolvedValue(response);
+
+      const subscribers = [{ email: 'a@test.com' }, { email: 'b@test.com' }];
+      const result = await handlers['rule_suppress_subscribers']({ subscribers });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(response);
+      expect(mocks.createSuppressions).toHaveBeenCalledWith({ subscribers });
+    });
+
+    it('returns error on API failure', async () => {
+      mocks.createSuppressions.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_suppress_subscribers']({
+        subscribers: [{ email: 'a@test.com' }],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
+  });
+
+  describe('rule_unsuppress_subscribers', () => {
+    it('unsuppresses subscribers successfully', async () => {
+      const response = { queued: 1 };
+      mocks.deleteSuppressions.mockResolvedValue(response);
+
+      const subscribers = [{ email: 'a@test.com' }];
+      const result = await handlers['rule_unsuppress_subscribers']({ subscribers });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(response);
+      expect(mocks.deleteSuppressions).toHaveBeenCalledWith({ subscribers });
+    });
+  });
 });

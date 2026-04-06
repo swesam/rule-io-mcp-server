@@ -75,6 +75,52 @@ describe('analytics tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(exported);
+      expect(mocks.exportDispatchers).toHaveBeenCalledWith({
+        date_from: '2025-01-01',
+        date_to: '2025-01-01',
+      });
+      expect(mocks.exportStatistics).not.toHaveBeenCalled();
+      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
+    });
+
+    it('exports statistics for a date range', async () => {
+      const exported = { data: [{ date: '2025-01-01', opens: 150 }] };
+      mocks.exportStatistics.mockResolvedValue(exported);
+
+      const result = await handlers['rule_export_data']({
+        type: 'statistics',
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(exported);
+      expect(mocks.exportStatistics).toHaveBeenCalledWith({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+      });
+      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
+      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
+    });
+
+    it('exports subscribers for a date range', async () => {
+      const exported = { data: [{ id: 1, email: 'subscriber@example.com' }] };
+      mocks.exportSubscribers.mockResolvedValue(exported);
+
+      const result = await handlers['rule_export_data']({
+        type: 'subscribers',
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(exported);
+      expect(mocks.exportSubscribers).toHaveBeenCalledWith({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+      });
+      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
+      expect(mocks.exportStatistics).not.toHaveBeenCalled();
     });
   });
 });

@@ -92,4 +92,50 @@ describe('campaign tools', () => {
       });
     });
   });
+
+  describe('rule_list_campaigns', () => {
+    it('returns campaign list', async () => {
+      const campaigns = { data: [{ id: 1, name: 'Summer Sale' }], total: 1 };
+      mocks.listCampaigns.mockResolvedValue(campaigns);
+
+      const result = await handlers['rule_list_campaigns']({ page: 1, per_page: 25 });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(campaigns);
+      expect(mocks.listCampaigns).toHaveBeenCalledWith({ page: 1, per_page: 25 });
+    });
+  });
+
+  describe('rule_get_campaign', () => {
+    it('returns campaign detail', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
+      mocks.getCampaign.mockResolvedValue(campaign);
+
+      const result = await handlers['rule_get_campaign']({ id: 1 });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(campaign);
+    });
+
+    it('returns not-found text when campaign is null', async () => {
+      mocks.getCampaign.mockResolvedValue(null);
+
+      const result = await handlers['rule_get_campaign']({ id: 999 });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('Campaign 999 not found');
+    });
+  });
+
+  describe('rule_update_campaign', () => {
+    it('updates a campaign', async () => {
+      const updated = { id: 1, name: 'Winter Sale' };
+      mocks.updateCampaign.mockResolvedValue(updated);
+
+      const result = await handlers['rule_update_campaign']({ id: 1, name: 'Winter Sale' });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(updated);
+    });
+  });
 });
