@@ -124,7 +124,7 @@ No input required.
 }
 ```
 
-**Verify**: Response contains `subscriber`, `fields`, and `tags` objects. If the subscriber does not exist, response says "not found".
+**Verify**: Response contains `subscriber`, `fields`, and `tags`. If the subscriber does not exist, response says "not found".
 
 #### rule_delete_subscriber
 
