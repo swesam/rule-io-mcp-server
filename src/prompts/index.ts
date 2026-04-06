@@ -1,13 +1,19 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 
+// -- Shared helpers --
+
+function formatBrandNote(brandStyleId?: string): string {
+  return brandStyleId
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+}
+
 // -- E-commerce prompt content builders --
 
 function orderConfirmationPrompt(brandStyleId?: string, orderRefField?: string): string {
   const field = orderRefField ?? 'Order.OrderNumber';
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
 
   return `## Order Confirmation Email
 
@@ -62,9 +68,7 @@ function shippingUpdatePrompt(brandStyleId?: string, trackingUrlField?: string):
   const trackingNote = trackingUrlField
     ? `Use the tracking URL field \`{{${trackingUrlField}}}\` in your CTA button.`
     : 'If your integration provides a tracking URL field, use it in the CTA button (e.g. `{{Shipment.TrackingUrl}}`).';
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
 
   return `## Shipping Update Email
 
@@ -115,9 +119,7 @@ Use \`rule_create_automation_email\` with:
 }
 
 function abandonedCartPrompt(brandStyleId?: string, discountCode?: string): string {
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
   const discountSection = discountCode
     ? `\n### Discount incentive:\nInclude the discount code **${discountCode}** in the email body to encourage completion. Example copy: "Use code ${discountCode} for 10% off your order!"`
     : '\n### Optional incentive:\nConsider including a discount code to encourage cart completion. If you have one, re-run this prompt with the `discount_code` argument.';
@@ -176,9 +178,7 @@ Use \`rule_create_automation_email\` with:
 }
 
 function orderCancellationPrompt(brandStyleId?: string): string {
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
 
   return `## Order Cancellation Email
 
@@ -240,9 +240,7 @@ function reservationConfirmationPrompt(
 ): string {
   const checkin = checkinField ?? 'Booking.CheckInDate';
   const checkout = checkoutField ?? 'Booking.CheckOutDate';
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
 
   return `## Reservation Confirmation Email
 
@@ -295,9 +293,7 @@ Use \`rule_create_automation_email\` with:
 }
 
 function reservationReminderPrompt(brandStyleId?: string): string {
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
 
   return `## Reservation Reminder Email (Pre-Arrival)
 
@@ -349,9 +345,7 @@ Use \`rule_create_automation_email\` with:
 }
 
 function feedbackRequestPrompt(brandStyleId?: string, feedbackUrl?: string): string {
-  const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
+  const brandNote = formatBrandNote(brandStyleId);
   const ctaUrl = feedbackUrl
     ? `Link the CTA button to: ${feedbackUrl}`
     : 'Link the CTA button to your feedback/review page URL.';
@@ -448,7 +442,7 @@ Recommended email automations for Shopify:
 1. Use \`rule_list_automails\` to verify your automations were created
 2. Place a test order in Shopify
 3. Check that the subscriber receives the triggered email
-4. Use \`rule_render_template\` with a subscriber ID to preview with real data
+4. Use \`rule_render_template\` with a template ID and subscriber ID to preview with real data (get the template ID from \`rule_create_automation_email\`'s response or \`rule_list_templates\`)
 
 ### Common issues:
 - **Tags not appearing**: Ensure the Shopify integration is active in Rule.io settings
@@ -493,7 +487,7 @@ Recommended email automations for hospitality:
 1. Use \`rule_list_automails\` to verify your automations were created
 2. Create a test reservation in Bookzen
 3. Check that the guest subscriber receives the triggered email
-4. Use \`rule_render_template\` with a subscriber ID to preview with real data
+4. Use \`rule_render_template\` with a template ID and subscriber ID to preview with real data (get the template ID from \`rule_create_automation_email\`'s response or \`rule_list_templates\`)
 
 ### Common issues:
 - **Tags not appearing**: Ensure the Bookzen integration is active in Rule.io settings
