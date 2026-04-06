@@ -5,7 +5,7 @@ import {
   jsonResult,
   textResult,
   errorResult,
-} from '../util/errors';
+} from '../util/errors.js';
 
 describe('handleRuleError', () => {
   it('returns auth error message for 401 RuleApiError', () => {

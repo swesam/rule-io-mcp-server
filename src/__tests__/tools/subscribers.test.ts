@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RuleClient } from 'rule-io-sdk';
 import { RuleApiError } from 'rule-io-sdk';
-import { registerSubscriberTools } from '../../tools/subscribers';
+import { registerSubscriberTools } from '../../tools/subscribers.js';
 
 interface MockClient {
   createSubscriberV3: ReturnType<typeof vi.fn>;

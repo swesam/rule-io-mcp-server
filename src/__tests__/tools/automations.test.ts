@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RuleClient } from 'rule-io-sdk';
 import { RuleApiError } from 'rule-io-sdk';
-import { registerAutomationTools } from '../../tools/automations';
+import { registerAutomationTools } from '../../tools/automations.js';
 
 interface MockClient {
   getTagIdByName: ReturnType<typeof vi.fn>;
