@@ -6,7 +6,7 @@ import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
 export function registerSubscriberTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_subscriber',
-    'Create a new subscriber in Rule.io. Provide an email and optionally a phone number, language, and status. To set custom fields or tags, use rule_manage_subscriber_tags after creation.',
+    'Create a new subscriber in Rule.io. Provide an email and optionally a phone number, language, and status. To add tags after creation, use rule_manage_subscriber_tags.',
     {
       email: z.string().email().describe('Subscriber email address'),
       phone_number: z.string().optional().describe('Phone number (E.164 format preferred)'),

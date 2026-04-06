@@ -24,8 +24,12 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
           const result = await client.createTemplate(templatePayload);
           return jsonResult(result);
         } catch (error) {
-          // Retry with timestamp if name conflict
-          if (error instanceof RuleApiError && error.isValidationError()) {
+          // Retry with timestamp only if the name field specifically failed
+          if (
+            error instanceof RuleApiError &&
+            error.isValidationError() &&
+            error.validationErrors?.name
+          ) {
             templatePayload.name = `${name} - ${Date.now()}`;
             const result = await client.createTemplate(templatePayload);
             return jsonResult(result);

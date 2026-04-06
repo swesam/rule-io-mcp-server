@@ -13,25 +13,48 @@ function resourceContent(uri: string, data: unknown) {
   };
 }
 
+function resourceError(uri: string, error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return {
+    contents: [
+      {
+        uri,
+        mimeType: 'application/json' as const,
+        text: JSON.stringify({ error: message }, null, 2),
+      },
+    ],
+  };
+}
+
 export function registerResources(server: McpServer, client: RuleClient): void {
-  // Static resources
   server.resource('tags', 'rule://tags', async (uri) => {
-    const response = await client.getTags();
-    return resourceContent(uri.href, response);
+    try {
+      const response = await client.getTags();
+      return resourceContent(uri.href, response);
+    } catch (error) {
+      return resourceError(uri.href, error);
+    }
   });
 
   server.resource('brand-styles', 'rule://brand-styles', async (uri) => {
-    const response = await client.listBrandStyles();
-    return resourceContent(uri.href, response);
+    try {
+      const response = await client.listBrandStyles();
+      return resourceContent(uri.href, response);
+    } catch (error) {
+      return resourceError(uri.href, error);
+    }
   });
 
-  // Parameterized resources
   server.resource(
     'automail',
     new ResourceTemplate('rule://automails/{id}', { list: undefined }),
     async (uri, { id }) => {
-      const automail = await client.getAutomail(Number(id));
-      return resourceContent(uri.href, automail ?? { error: 'Not found' });
+      try {
+        const automail = await client.getAutomail(Number(id));
+        return resourceContent(uri.href, automail ?? { error: 'Not found' });
+      } catch (error) {
+        return resourceError(uri.href, error);
+      }
     }
   );
 
@@ -39,8 +62,12 @@ export function registerResources(server: McpServer, client: RuleClient): void {
     'campaign',
     new ResourceTemplate('rule://campaigns/{id}', { list: undefined }),
     async (uri, { id }) => {
-      const campaign = await client.getCampaign(Number(id));
-      return resourceContent(uri.href, campaign ?? { error: 'Not found' });
+      try {
+        const campaign = await client.getCampaign(Number(id));
+        return resourceContent(uri.href, campaign ?? { error: 'Not found' });
+      } catch (error) {
+        return resourceError(uri.href, error);
+      }
     }
   );
 
@@ -48,8 +75,12 @@ export function registerResources(server: McpServer, client: RuleClient): void {
     'brand-style',
     new ResourceTemplate('rule://brand-styles/{id}', { list: undefined }),
     async (uri, { id }) => {
-      const style = await client.getBrandStyle(Number(id));
-      return resourceContent(uri.href, style ?? { error: 'Not found' });
+      try {
+        const style = await client.getBrandStyle(Number(id));
+        return resourceContent(uri.href, style ?? { error: 'Not found' });
+      } catch (error) {
+        return resourceError(uri.href, error);
+      }
     }
   );
 }

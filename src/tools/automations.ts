@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
+import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -143,11 +143,17 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
     },
     async ({ id, active, sendout_type, trigger_type, trigger_id }) => {
       try {
+        const hasTriggerType = trigger_type !== undefined;
+        const hasTriggerId = trigger_id !== undefined;
+        if (hasTriggerType !== hasTriggerId) {
+          return errorResult('trigger_type and trigger_id must be provided together.');
+        }
+
         const update: Record<string, unknown> = {};
         if (active !== undefined) update.active = active;
         if (sendout_type) update.sendout_type = sendout_type === 'marketing' ? 1 : 2;
-        if (trigger_type && trigger_id) {
-          update.trigger = { type: trigger_type.toUpperCase(), id: trigger_id };
+        if (hasTriggerType && hasTriggerId) {
+          update.trigger = { type: trigger_type!.toUpperCase(), id: trigger_id };
         }
 
         const result = await client.updateAutomail(id, update);
