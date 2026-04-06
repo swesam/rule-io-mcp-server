@@ -9,6 +9,7 @@ import { registerTemplateTools } from './tools/templates.js';
 import { registerAnalyticsTools } from './tools/analytics.js';
 import { registerAdminTools } from './tools/admin.js';
 import { registerResources } from './resources/index.js';
+import { registerPrompts } from './prompts/index.js';
 
 export function createServer(config: ServerConfig): McpServer {
   const server = new McpServer({
@@ -35,6 +36,9 @@ export function createServer(config: ServerConfig): McpServer {
 
   // Register resources
   registerResources(server, client);
+
+  // Register prompts
+  registerPrompts(server);
 
   return server;
 }
