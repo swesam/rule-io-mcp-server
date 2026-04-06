@@ -65,9 +65,8 @@ Adjust field names based on your integration (Shopify, custom, etc.).
 }
 
 function shippingUpdatePrompt(brandStyleId?: string, trackingUrlField?: string): string {
-  const trackingNote = trackingUrlField
-    ? `Use the tracking URL field \`{{${trackingUrlField}}}\` in your CTA button.`
-    : 'If your integration provides a tracking URL field, use it in the CTA button (e.g. `{{Shipment.TrackingUrl}}`).';
+  const trackingField = trackingUrlField ?? 'Shipment.TrackingUrl';
+  const trackingNote = `Use the tracking URL field \`{{${trackingField}}}\` in your CTA button.`;
   const brandNote = formatBrandNote(brandStyleId);
 
   return `## Shipping Update Email
@@ -104,7 +103,7 @@ Use \`rule_create_automation_email\` with:
         "content": [
           { "type": "heading", "content": "Your order has shipped!" },
           { "type": "text", "content": "Great news — your order is on its way. Use the link below to track your shipment." },
-          { "type": "button", "href": "{{Shipment.TrackingUrl}}", "content": "Track Your Shipment" }
+          { "type": "button", "href": "{{${trackingField}}}", "content": "Track Your Shipment" }
         ]
       }
     ]
