@@ -654,8 +654,8 @@ Switch to the **Resources** tab in MCP Inspector. Resources provide read-only co
 
 | Resource | URI | What to Verify |
 |---|---|---|
-| Tags | `rule://tags` | Returns all tags with IDs and names |
-| Brand Styles | `rule://brand-styles` | Returns all brand styles |
+| Tags | `rule://tags` | Returns a response object (typically with a `data` array) containing all tags with IDs and names |
+| Brand Styles | `rule://brand-styles` | Returns a response object (typically with a `data` array) containing all brand styles |
 
 ### Parameterized Resources
 
@@ -729,7 +729,7 @@ npm run test:watch
 Run a specific test file:
 
 ```bash
-npx vitest run src/tools/__tests__/tags.test.ts
+npx vitest run src/__tests__/tools/tags.test.ts
 ```
 
 Type-check without running:
