@@ -70,17 +70,17 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_create_subscriber` | Create a new subscriber | `email`, `phone_number?`, `language?`, `status?` |
 | `rule_get_subscriber` | Get subscriber by email (profile + fields + tags) | `email` |
 | `rule_delete_subscriber` | Delete a subscriber | `subscriber`, `identified_by?` |
-| `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `action`, `tags`, `trigger_automation?` |
-| `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[]` |
+| `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `identified_by?`, `action`, `tags`, `trigger_automation?` |
+| `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[{ email?, phone_number? }]`, `trigger_automation?` |
 
 ### Automations
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
-| `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template` |
-| `rule_list_automails` | List email automations | `active?`, `query?`, `page?` |
+| `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template`, `sendout_type?` |
+| `rule_list_automails` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
 | `rule_get_automail` | Get automation details by ID | `id` |
-| `rule_update_automail` | Update an automation | `id`, `active?`, `sendout_type?` |
+| `rule_update_automail` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
 
 ### Campaigns
 
@@ -104,8 +104,8 @@ That's it. The server starts automatically when Claude needs it.
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
-| `rule_get_analytics` | Get performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type?`, `metrics?` |
-| `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to` |
+| `rule_get_analytics` | Get performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type?`, `object_ids?`, `metrics?` |
+| `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to`, `next_page_token?` |
 
 ### Admin
 
@@ -182,7 +182,7 @@ Pre-built workflow guides that walk the AI through multi-step email setups.
 
 The AI calls two tools in sequence:
 
-```json
+```jsonc
 // 1. Create the subscriber
 { "email": "jane@example.com", "language": "en" }
 // → { "id": 42, "email": "jane@example.com", ... }
@@ -198,12 +198,12 @@ The AI calls two tools in sequence:
 
 The AI uses the **`create_abandoned_cart_email`** prompt for step-by-step guidance, then calls **`rule_create_automation_email`** with the trigger tag, subject, and RCML template:
 
-```json
+```jsonc
 {
   "name": "Abandoned Cart Recovery",
   "trigger_tag": "shopify_checkout_abandoned",
   "subject": "You left something behind!",
-  "template": { "type": "rcml", "content": [{ "type": "section", "content": [...] }] },
+  "template": { "type": "rcml", "content": [{ "type": "section", "content": ["..."] }] },
   "sendout_type": "marketing"
 }
 // → { "automail_id": 101, "message_id": 202, "template_id": 303, "dynamic_set_id": 404 }
@@ -215,7 +215,7 @@ The AI uses the **`create_abandoned_cart_email`** prompt for step-by-step guidan
 
 The AI calls **`rule_get_analytics`** with the campaign ID and date range:
 
-```json
+```jsonc
 {
   "date_from": "2025-06-01",
   "date_to": "2025-06-07",
@@ -232,9 +232,9 @@ The AI calls **`rule_get_analytics`** with the campaign ID and date range:
 
 The AI calls **`rule_manage_brand_style`** with **`action: create_from_domain`** to create a new brand style with colors, fonts, and logo extracted from the site:
 
-```json
+```jsonc
 { "action": "create_from_domain", "domain": "https://example.com" }
-// → { "id": 7, "name": "example.com", "colors": {...}, "fonts": {...} }
+// → { "id": 7, "name": "example.com", "colors": { "primary": "#000" }, "fonts": { "heading": "Arial" } }
 ```
 
 ---
