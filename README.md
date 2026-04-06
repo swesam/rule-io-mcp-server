@@ -58,63 +58,63 @@ That's it. The server starts automatically when Claude needs it.
 
 ### Tags
 
-| Tool | Description |
-|------|-------------|
-| `rule_list_tags` | List all tags in your Rule.io account |
-| `rule_find_tag` | Find a tag's numeric ID by name |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_list_tags` | List all tags in your Rule.io account | _(none)_ |
+| `rule_find_tag` | Find a tag's numeric ID by name | `name` |
 
 ### Subscribers
 
-| Tool | Description |
-|------|-------------|
-| `rule_create_subscriber` | Create a new subscriber |
-| `rule_get_subscriber` | Get subscriber by email (profile + fields + tags) |
-| `rule_delete_subscriber` | Delete a subscriber |
-| `rule_manage_subscriber_tags` | Add or remove tags from a subscriber |
-| `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_create_subscriber` | Create a new subscriber | `email`, `phone_number?`, `language?`, `status?` |
+| `rule_get_subscriber` | Get subscriber by email (profile + fields + tags) | `email` |
+| `rule_delete_subscriber` | Delete a subscriber | `subscriber`, `identified_by?` |
+| `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `action`, `tags`, `trigger_automation?` |
+| `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[]` |
 
 ### Automations
 
-| Tool | Description |
-|------|-------------|
-| `rule_create_automation_email` | Create complete email automation in one step |
-| `rule_list_automails` | List email automations |
-| `rule_get_automail` | Get automation details by ID |
-| `rule_update_automail` | Update an automation |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template` |
+| `rule_list_automails` | List email automations | `active?`, `query?`, `page?` |
+| `rule_get_automail` | Get automation details by ID | `id` |
+| `rule_update_automail` | Update an automation | `id`, `active?`, `sendout_type?` |
 
 ### Campaigns
 
-| Tool | Description |
-|------|-------------|
-| `rule_create_campaign` | Create a one-off email campaign |
-| `rule_list_campaigns` | List campaigns |
-| `rule_get_campaign` | Get campaign details by ID |
-| `rule_update_campaign` | Update a campaign |
-| `rule_schedule_campaign` | Schedule, send, or cancel a campaign |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
+| `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
+| `rule_get_campaign` | Get campaign details by ID | `id` |
+| `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
+| `rule_schedule_campaign` | Schedule, send, or cancel a campaign | `id`, `action`, `datetime?` |
 
 ### Templates
 
-| Tool | Description |
-|------|-------------|
-| `rule_create_template` | Create RCML email template |
-| `rule_list_templates` | List templates |
-| `rule_render_template` | Render template to HTML (with optional merge tag substitution) |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_create_template` | Create RCML email template | `name`, `message_id`, `content` |
+| `rule_list_templates` | List templates | `page?`, `per_page?` |
+| `rule_render_template` | Render template to HTML (with optional merge tag substitution) | `id`, `subscriber_id?` |
 
 ### Analytics
 
-| Tool | Description |
-|------|-------------|
-| `rule_get_analytics` | Get performance metrics for campaigns/automations |
-| `rule_export_data` | Export dispatchers, statistics, or subscribers |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_get_analytics` | Get performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type?`, `metrics?` |
+| `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to` |
 
 ### Admin
 
-| Tool | Description |
-|------|-------------|
-| `rule_list_brand_styles` | List brand styles |
-| `rule_manage_brand_style` | Create/update/delete brand styles |
-| `rule_suppress_subscribers` | Suppress subscribers from emails |
-| `rule_unsuppress_subscribers` | Remove suppression |
+| Tool | Description | Key Inputs |
+|------|-------------|------------|
+| `rule_list_brand_styles` | List brand styles | _(none)_ |
+| `rule_manage_brand_style` | Create/update/delete brand styles | `action`, `id?`, `domain?`, `name?` |
+| `rule_suppress_subscribers` | Suppress subscribers from emails | `subscribers[]` |
+| `rule_unsuppress_subscribers` | Remove suppression | `subscribers[]` |
 
 ---
 
@@ -180,28 +180,62 @@ Pre-built workflow guides that walk the AI through multi-step email setups.
 
 > "Add jane@example.com as a subscriber with the tag 'VIP'"
 
-The AI will call:
+The AI calls two tools in sequence:
 
-1. **`rule_create_subscriber`** with the email and any profile fields
-2. **`rule_manage_subscriber_tags`** to attach the "VIP" tag
+```json
+// 1. Create the subscriber
+{ "email": "jane@example.com", "language": "en" }
+// → { "id": 42, "email": "jane@example.com", ... }
+
+// 2. Tag them
+{ "subscriber": "jane@example.com", "action": "add", "tags": ["VIP"] }
+// → { "message": "Tags added successfully" }
+```
 
 ### Set up an abandoned cart automation
 
 > "Set up an abandoned cart recovery email for our Shopify store"
 
-The AI uses the **`create_abandoned_cart_email`** prompt for step-by-step guidance, then calls **`rule_create_automation_email`** to build the automation with the right trigger, delay, and template.
+The AI uses the **`create_abandoned_cart_email`** prompt for step-by-step guidance, then calls **`rule_create_automation_email`** with the trigger tag, subject, and RCML template:
+
+```json
+{
+  "name": "Abandoned Cart Recovery",
+  "trigger_tag": "shopify_checkout_abandoned",
+  "subject": "You left something behind!",
+  "template": { "type": "rcml", "content": [{ "type": "section", "content": [...] }] },
+  "sendout_type": "marketing"
+}
+// → { "automail_id": 101, "message_id": 202, "template_id": 303, "dynamic_set_id": 404 }
+```
 
 ### Check campaign performance
 
 > "How did last week's newsletter perform?"
 
-The AI calls **`rule_get_analytics`** with the campaign ID and date range to return open rates, click rates, bounces, and unsubscribes.
+The AI calls **`rule_get_analytics`** with the campaign ID and date range:
+
+```json
+{
+  "date_from": "2025-06-01",
+  "date_to": "2025-06-07",
+  "object_type": "campaign",
+  "object_ids": ["12345"],
+  "metrics": ["opens", "clicks", "bounces", "unsubscribes"]
+}
+// → { "opens": 1240, "clicks": 312, "bounces": 8, "unsubscribes": 3 }
+```
 
 ### Create a brand style from a website
 
 > "Create a brand style based on https://example.com"
 
-The AI calls **`rule_manage_brand_style`** to create a new brand style with colors, fonts, and logo extracted from the site.
+The AI calls **`rule_manage_brand_style`** with **`action: create_from_domain`** to create a new brand style with colors, fonts, and logo extracted from the site:
+
+```json
+{ "action": "create_from_domain", "domain": "https://example.com" }
+// → { "id": 7, "name": "example.com", "colors": {...}, "fonts": {...} }
+```
 
 ---
 
