@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RuleClient } from 'rule-io-sdk';
 import { RuleApiError } from 'rule-io-sdk';
 import { registerTagTools } from '../../tools/tags.js';
+import { type ToolHandler, registerAndCapture } from './_helpers.js';
 
 function createMockClient(): {
   client: RuleClient;
@@ -15,32 +15,13 @@ function createMockClient(): {
   return { client, getTags, getTagIdByName };
 }
 
-type ToolHandler = (args: Record<string, unknown>) => Promise<{
-  content: Array<{ type: string; text: string }>;
-  isError?: boolean;
-}>;
-
-function registerAndCapture(mockClient: RuleClient): Record<string, ToolHandler> {
-  const server = new McpServer({ name: 'test', version: '0.0.1' });
-  const toolSpy = vi.spyOn(server, 'tool');
-  registerTagTools(server, mockClient);
-
-  const handlers: Record<string, ToolHandler> = {};
-  for (const call of toolSpy.mock.calls) {
-    const name = call[0] as string;
-    // Handler is the last argument
-    handlers[name] = call[call.length - 1] as ToolHandler;
-  }
-  return handlers;
-}
-
 describe('tag tools', () => {
   let mocks: ReturnType<typeof createMockClient>;
   let handlers: Record<string, ToolHandler>;
 
   beforeEach(() => {
     mocks = createMockClient();
-    handlers = registerAndCapture(mocks.client);
+    handlers = registerAndCapture(registerTagTools, mocks.client);
   });
 
   describe('rule_list_tags', () => {
