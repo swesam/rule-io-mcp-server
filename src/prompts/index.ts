@@ -33,7 +33,20 @@ Use \`rule_create_automation_email\` with:
   "name": "Order Confirmation",
   "trigger_tag": "shopify_order_created",
   "subject": "Order {{${field}}} confirmed!",
-  "template": "<rcml><section><heading>Thank you for your order!</heading><text>Your order {{${field}}} has been confirmed and is being prepared.</text><text>Total: {{Order.TotalPrice}} {{Order.Currency}}</text><button href=\\"https://example.com/track\\">Track Your Order</button></section></rcml>",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "Thank you for your order!" },
+          { "type": "text", "content": "Your order {{${field}}} has been confirmed and is being prepared." },
+          { "type": "text", "content": "Total: {{Order.TotalPrice}} {{Order.Currency}}" },
+          { "type": "button", "href": "https://example.com/track", "content": "Track Your Order" }
+        ]
+      }
+    ]
+  },
   "sendout_type": "transactional"
 }
 \`\`\`
@@ -324,7 +337,7 @@ Shopify data is synced to Rule.io subscriber fields. Common mappings:
 | Last Name | \`{{Customer.LastName}}\` |
 | Shipping Address | \`{{Order.ShippingAddress}}\` |
 
-To inspect available fields, use \`rule_get_subscriber\` with a known subscriber ID and examine the returned field structure.
+To inspect available fields, use \`rule_get_subscriber\` with a known subscriber email (e.g. \`customer@example.com\`) and examine the returned field structure.
 
 ### Step 3: Create your automations
 Recommended email automations for Shopify:
@@ -370,7 +383,7 @@ Bookzen syncs reservation data to Rule.io subscriber fields. Common mappings:
 | Confirmation # | \`{{Booking.ConfirmationNumber}}\` |
 | Guest First Name | \`{{Subscriber.FirstName}}\` |
 
-To inspect available fields, use \`rule_get_subscriber\` with a known subscriber ID and examine the returned field structure.
+To inspect available fields, use \`rule_get_subscriber\` with a known subscriber email and examine the returned field structure.
 
 ### Step 3: Create your automations
 Recommended email automations for hospitality:
