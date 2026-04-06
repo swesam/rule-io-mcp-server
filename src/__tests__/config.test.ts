@@ -21,7 +21,7 @@ describe('loadConfig', () => {
   });
 
   it('throws when RULE_IO_API_KEY is missing', () => {
-    expect(() => loadConfig()).toThrow('RULE_IO_API_KEY environment variable is required');
+    expect(() => loadConfig()).toThrow(/RULE_IO_API_KEY environment variable is required/);
   });
 
   it('returns correct config with only RULE_IO_API_KEY set (defaults)', () => {

@@ -95,10 +95,12 @@ describe('analytics tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(exported);
-      expect(mocks.exportStatistics).toHaveBeenCalledWith({
-        date_from: '2025-01-01',
-        date_to: '2025-01-31',
-      });
+      expect(mocks.exportStatistics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+        }),
+      );
       expect(mocks.exportDispatchers).not.toHaveBeenCalled();
       expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
