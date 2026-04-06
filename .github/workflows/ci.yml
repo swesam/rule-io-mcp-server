@@ -9,6 +9,7 @@ on:
     paths-ignore:
       - '**/*.md'
       - '.claude/**'
+      - 'CLAUDE.md'
       - 'LICENSE'
       - '.gitignore'
   pull_request:
@@ -16,6 +17,7 @@ on:
     paths-ignore:
       - '**/*.md'
       - '.claude/**'
+      - 'CLAUDE.md'
       - 'LICENSE'
       - '.gitignore'
 
@@ -58,4 +60,7 @@ jobs:
       - name: Verify dist outputs exist
         run: |
           test -f dist/index.js || (echo "Missing dist/index.js" && exit 1)
+          test -f dist/index.mjs || (echo "Missing dist/index.mjs" && exit 1)
+          test -f dist/index.d.ts || (echo "Missing dist/index.d.ts" && exit 1)
+          test -f dist/bin/rule-io-mcp.js || (echo "Missing dist/bin/rule-io-mcp.js" && exit 1)
           echo "All dist outputs present"
