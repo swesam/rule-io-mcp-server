@@ -1,0 +1,51 @@
+{
+  "name": "rule-io-mcp-server",
+  "version": "0.1.0",
+  "description": "MCP server for Rule.io email marketing — deep workflow tools, not CRUD wrappers",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "rule-io-mcp-server": "./dist/bin/rule-io-mcp.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "type-check": "tsc --noEmit",
+    "start": "node dist/index.js",
+    "prepare": "node -e \"try{require('tsup');require('child_process').execSync('npm run build',{stdio:'inherit'})}catch{}\""
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "rule.io",
+    "email",
+    "marketing",
+    "automation"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/swesam/rule-io-mcp-server.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.0",
+    "rule-io-sdk": "file:../rule-io-sdk",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
