@@ -6,8 +6,8 @@ import { z } from 'zod';
 function orderConfirmationPrompt(brandStyleId?: string, orderRefField?: string): string {
   const field = orderRefField ?? 'Order.OrderNumber';
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId} (passed as brand_style_id)`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles, then pass the ID as brand_style_id';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
 
   return `## Order Confirmation Email
 
@@ -63,8 +63,8 @@ function shippingUpdatePrompt(brandStyleId?: string, trackingUrlField?: string):
     ? `Use the tracking URL field \`{{${trackingUrlField}}}\` in your CTA button.`
     : 'If your integration provides a tracking URL field, use it in the CTA button (e.g. `{{Shipment.TrackingUrl}}`).';
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId}`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
 
   return `## Shipping Update Email
 
@@ -87,11 +87,27 @@ ${trackingNote}
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Shipping Update"
-- \`trigger_tag\`: "<your shipment tag>"
-- \`subject\`: "Your order has shipped!"
-- \`template\`: RCML document with shipping details and tracking CTA
-- \`sendout_type\`: "transactional"
+\`\`\`json
+{
+  "name": "Shipping Update",
+  "trigger_tag": "shopify_order_fulfilled",
+  "subject": "Your order is on its way!",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "Your order has shipped!" },
+          { "type": "text", "content": "Great news — your order is on its way. Use the link below to track your shipment." },
+          { "type": "button", "href": "{{Shipment.TrackingUrl}}", "content": "Track Your Shipment" }
+        ]
+      }
+    ]
+  },
+  "sendout_type": "transactional"
+}
+\`\`\`
 
 💡 **Tip**: Pair this with an order confirmation email for a complete post-purchase flow.
 
@@ -100,8 +116,8 @@ Use \`rule_create_automation_email\` with:
 
 function abandonedCartPrompt(brandStyleId?: string, discountCode?: string): string {
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId}`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
   const discountSection = discountCode
     ? `\n### Discount incentive:\nInclude the discount code **${discountCode}** in the email body to encourage completion. Example copy: "Use code ${discountCode} for 10% off your order!"`
     : '\n### Optional incentive:\nConsider including a discount code to encourage cart completion. If you have one, re-run this prompt with the `discount_code` argument.';
@@ -132,11 +148,27 @@ ${discountSection}
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Abandoned Cart Recovery"
-- \`trigger_tag\`: "<your cart abandonment tag>"
-- \`subject\`: "You left something in your cart!"
-- \`template\`: RCML document with urgency copy and cart CTA
-- \`sendout_type\`: "marketing"
+\`\`\`json
+{
+  "name": "Abandoned Cart Recovery",
+  "trigger_tag": "shopify_checkout_abandoned",
+  "subject": "You left something behind, {{Subscriber.FirstName}}!",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "Don't miss out!" },
+          { "type": "text", "content": "You left items in your cart. Complete your order before they sell out." },
+          { "type": "button", "href": "https://example.com/cart", "content": "Complete Your Order" }
+        ]
+      }
+    ]
+  },
+  "sendout_type": "marketing"
+}
+\`\`\`
 
 💡 **Tip**: Abandoned cart emails perform best as a series (1h, 24h, 72h). Create multiple automations with different tags for each stage.
 
@@ -145,8 +177,8 @@ Use \`rule_create_automation_email\` with:
 
 function orderCancellationPrompt(brandStyleId?: string): string {
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId}`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
 
   return `## Order Cancellation Email
 
@@ -174,11 +206,27 @@ ${brandNote}
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Order Cancellation"
-- \`trigger_tag\`: "<your cancellation tag>"
-- \`subject\`: "Your order has been cancelled"
-- \`template\`: RCML document with cancellation details and support CTA
-- \`sendout_type\`: "transactional"
+\`\`\`json
+{
+  "name": "Order Cancellation",
+  "trigger_tag": "shopify_order_cancelled",
+  "subject": "Your order has been cancelled",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "Order Cancelled" },
+          { "type": "text", "content": "Your order has been cancelled. If a payment was made, your refund will be processed within 5-10 business days." },
+          { "type": "button", "href": "https://example.com/support", "content": "Contact Support" }
+        ]
+      }
+    ]
+  },
+  "sendout_type": "transactional"
+}
+\`\`\`
 
 💡 **Tip**: If you use Shopify, run the \`setup_shopify_integration\` prompt first to ensure field mappings are configured.`;
 }
@@ -193,8 +241,8 @@ function reservationConfirmationPrompt(
   const checkin = checkinField ?? 'Booking.CheckInDate';
   const checkout = checkoutField ?? 'Booking.CheckOutDate';
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId}`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
 
   return `## Reservation Confirmation Email
 
@@ -220,19 +268,36 @@ Adjust field names based on your booking system (Bookzen, custom, etc.).
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Reservation Confirmation"
-- \`trigger_tag\`: "<your booking tag>"
-- \`subject\`: "Your reservation is confirmed!"
-- \`template\`: RCML document with reservation details
-- \`sendout_type\`: "transactional"
+\`\`\`json
+{
+  "name": "Reservation Confirmation",
+  "trigger_tag": "bookzen_reservation_created",
+  "subject": "Your reservation is confirmed!",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "Reservation Confirmed" },
+          { "type": "text", "content": "Your stay from {{${checkin}}} to {{${checkout}}} is confirmed. We look forward to welcoming you!" },
+          { "type": "text", "content": "Confirmation: {{Booking.ConfirmationNumber}} | Room: {{Booking.RoomType}}" },
+          { "type": "button", "href": "https://example.com/reservation", "content": "View Your Reservation" }
+        ]
+      }
+    ]
+  },
+  "sendout_type": "transactional"
+}
+\`\`\`
 
 💡 **Tip**: If using Bookzen, run the \`setup_bookzen_integration\` prompt first to configure field mappings.`;
 }
 
 function reservationReminderPrompt(brandStyleId?: string): string {
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId}`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
 
   return `## Reservation Reminder Email (Pre-Arrival)
 
@@ -260,20 +325,37 @@ ${brandNote}
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Pre-Arrival Reminder"
-- \`trigger_tag\`: "<your pre-arrival tag>"
-- \`subject\`: "Your stay is coming up - here's what you need to know"
-- \`template\`: RCML document with arrival info and local tips
-- \`sendout_type\`: "transactional"`;
+\`\`\`json
+{
+  "name": "Pre-Arrival Reminder",
+  "trigger_tag": "bookzen_checkin_approaching",
+  "subject": "Your stay is coming up - here's what you need to know",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "We can't wait to welcome you!" },
+          { "type": "text", "content": "Your stay is just around the corner. Check-in is from 3:00 PM. Free parking is available on-site." },
+          { "type": "button", "href": "https://example.com/directions", "content": "Get Directions" }
+        ]
+      }
+    ]
+  },
+  "sendout_type": "transactional"
+}
+\`\`\``;
 }
 
 function feedbackRequestPrompt(brandStyleId?: string, feedbackUrl?: string): string {
   const brandNote = brandStyleId
-    ? `- **Brand style ID**: ${brandStyleId}`
-    : '- **Brand style**: Use `rule_list_brand_styles` to see available styles';
+    ? `- **Brand style ID**: ${brandStyleId} (use as reference when composing your email template content)`
+    : '- **Brand style**: Use `rule_list_brand_styles` to find your brand colors/fonts and align the template content accordingly';
   const ctaUrl = feedbackUrl
     ? `Link the CTA button to: ${feedbackUrl}`
     : 'Link the CTA button to your feedback/review page URL.';
+  const feedbackHref = feedbackUrl ?? 'https://example.com/feedback';
 
   return `## Post-Stay Feedback Request Email
 
@@ -303,11 +385,27 @@ ${ctaUrl}
 
 ### Example tool call:
 Use \`rule_create_automation_email\` with:
-- \`name\`: "Post-Stay Feedback"
-- \`trigger_tag\`: "<your checkout tag>"
-- \`subject\`: "How was your stay, {{Subscriber.FirstName}}?"
-- \`template\`: RCML document with thank-you message and feedback CTA
-- \`sendout_type\`: "marketing"`;
+\`\`\`json
+{
+  "name": "Post-Stay Feedback",
+  "trigger_tag": "bookzen_checkout_completed",
+  "subject": "How was your stay, {{Subscriber.FirstName}}?",
+  "template": {
+    "type": "rcml",
+    "content": [
+      {
+        "type": "section",
+        "content": [
+          { "type": "heading", "content": "Thank you for your stay!" },
+          { "type": "text", "content": "We hope you had a wonderful time. We'd love to hear your feedback — it only takes a minute." },
+          { "type": "button", "href": "${feedbackHref}", "content": "Share Your Feedback" }
+        ]
+      }
+    ]
+  },
+  "sendout_type": "marketing"
+}
+\`\`\``;
 }
 
 // -- Vendor integration prompt content builders --
