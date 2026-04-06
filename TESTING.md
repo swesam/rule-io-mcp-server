@@ -39,7 +39,7 @@ npm run build
 
 ## Starting MCP Inspector
 
-Launch the MCP Inspector with the server's start command and your API key:
+Launch the MCP Inspector with the server's start command:
 
 ```bash
 npx @modelcontextprotocol/inspector node dist/index.js
@@ -82,7 +82,7 @@ No input required.
 
 **Verify**: Returns `{ "id": <number>, "name": "newsletter" }` if the tag exists, or a "not found" message otherwise.
 
-**Error case** -- empty name:
+**Edge case** -- empty name (not a validation error; the tool will execute and return a "not found" message):
 
 ```json
 {
