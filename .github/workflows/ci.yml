@@ -41,9 +41,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
-          cache-dependency-path: |
-            package-lock.json
-            ../rule-io-sdk/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Build rule-io-sdk
         run: |
