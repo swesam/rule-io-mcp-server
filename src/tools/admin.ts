@@ -5,7 +5,7 @@ import { handleRuleError, jsonResult, errorResult } from '../util/errors.js';
 
 const subscriberIdentifier = z
   .object({
-    email: z.string().optional().describe('Subscriber email'),
+    email: z.string().email().optional().describe('Subscriber email'),
     phone_number: z.string().optional().describe('Subscriber phone number'),
   })
   .refine(

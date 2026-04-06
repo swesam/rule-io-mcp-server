@@ -47,7 +47,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         // Resolve tag name to ID
         const tagId = await client.getTagIdByName(trigger_tag);
         if (tagId === null) {
-          return textResult(
+          return errorResult(
             `Tag "${trigger_tag}" not found. Use rule_list_tags to see available tags, or create the tag in Rule.io first.`
           );
         }

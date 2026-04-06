@@ -26,6 +26,11 @@ function resourceError(uri: string, error: unknown) {
   };
 }
 
+function parseId(id: string | string[]): number | null {
+  const num = Number(Array.isArray(id) ? id[0] : id);
+  return Number.isFinite(num) ? num : null;
+}
+
 export function registerResources(server: McpServer, client: RuleClient): void {
   server.resource('tags', 'rule://tags', async (uri) => {
     try {
@@ -50,7 +55,11 @@ export function registerResources(server: McpServer, client: RuleClient): void {
     new ResourceTemplate('rule://automails/{id}', { list: undefined }),
     async (uri, { id }) => {
       try {
-        const automail = await client.getAutomail(Number(id));
+        const numId = parseId(id);
+        if (numId === null) {
+          return resourceError(uri.href, `Invalid automail ID: "${id}"`);
+        }
+        const automail = await client.getAutomail(numId);
         return resourceContent(uri.href, automail ?? { error: 'Not found' });
       } catch (error) {
         return resourceError(uri.href, error);
@@ -63,7 +72,11 @@ export function registerResources(server: McpServer, client: RuleClient): void {
     new ResourceTemplate('rule://campaigns/{id}', { list: undefined }),
     async (uri, { id }) => {
       try {
-        const campaign = await client.getCampaign(Number(id));
+        const numId = parseId(id);
+        if (numId === null) {
+          return resourceError(uri.href, `Invalid campaign ID: "${id}"`);
+        }
+        const campaign = await client.getCampaign(numId);
         return resourceContent(uri.href, campaign ?? { error: 'Not found' });
       } catch (error) {
         return resourceError(uri.href, error);
@@ -76,7 +89,11 @@ export function registerResources(server: McpServer, client: RuleClient): void {
     new ResourceTemplate('rule://brand-styles/{id}', { list: undefined }),
     async (uri, { id }) => {
       try {
-        const style = await client.getBrandStyle(Number(id));
+        const numId = parseId(id);
+        if (numId === null) {
+          return resourceError(uri.href, `Invalid brand style ID: "${id}"`);
+        }
+        const style = await client.getBrandStyle(numId);
         return resourceContent(uri.href, style ?? { error: 'Not found' });
       } catch (error) {
         return resourceError(uri.href, error);

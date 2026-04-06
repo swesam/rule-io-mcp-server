@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
+import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -106,15 +106,9 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
     async ({ id, action, datetime }) => {
       try {
         if (action === 'schedule' && !datetime) {
-          return {
-            content: [
-              {
-                type: 'text' as const,
-                text: 'datetime is required when action is "schedule". Provide a datetime string like "2025-06-15 10:00:00".',
-              },
-            ],
-            isError: true,
-          };
+          return errorResult(
+            'datetime is required when action is "schedule". Provide a datetime string like "2025-06-15 10:00:00".'
+          );
         }
 
         const result = await client.scheduleCampaign(id, {
