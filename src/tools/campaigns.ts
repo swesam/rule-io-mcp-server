@@ -172,6 +172,15 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
       sendout_type,
     }) => {
       try {
+        const hasRecipients =
+          (tags && tags.length > 0) ||
+          (segments && segments.length > 0) ||
+          (subscribers && subscribers.length > 0);
+        if (!hasRecipients) {
+          return errorResult(
+            'At least one recipient is required: provide "tags", "segments", or "subscribers". Use rule_list_tags or rule_list_segments to find tag/segment IDs, or rule_get_subscriber (by email) to find subscriber IDs.'
+          );
+        }
         if (!template && !brand_style_id) {
           return errorResult(
             'Provide either "template" (RCML document) or "brand_style_id" to generate a template.'

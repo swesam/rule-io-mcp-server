@@ -33,29 +33,23 @@ The order confirmation email typically includes:
 - CTA button (e.g. "Track Your Order")
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Order Confirmation",
   "trigger_tag": "shopify_order_created",
   "subject": "Order {{${field}}} confirmed!",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "Thank you for your order!" },
-          { "type": "text", "content": "Your order {{${field}}} has been confirmed and is being prepared." },
-          { "type": "text", "content": "Total: {{Order.TotalPrice}} {{Order.Currency}}" },
-          { "type": "button", "href": "https://example.com/track", "content": "Track Your Order" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "Thank you for your order!" },
+    { "type": "text", "text": "Your order {{${field}}} has been confirmed and is being prepared." },
+    { "type": "text", "text": "Total: {{Order.TotalPrice}} {{Order.Currency}}" },
+    { "type": "button", "text": "Track Your Order", "url": "https://example.com/track" }
+  ],
   "sendout_type": "transactional"
 }
 \`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`. Merge tags like \`{{${field}}}\` are replaced with real data (including subscriber and order/event fields) when the email is sent.
 
 ### Merge tags:
 Common order merge tags: \`{{${field}}}\`, \`{{Order.TotalPrice}}\`, \`{{Order.Currency}}\`
@@ -89,28 +83,22 @@ ${brandNote}
 ${trackingNote}
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Shipping Update",
   "trigger_tag": "shopify_order_fulfilled",
   "subject": "Your order is on its way!",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "Your order has shipped!" },
-          { "type": "text", "content": "Great news — your order is on its way. Use the link below to track your shipment." },
-          { "type": "button", "href": "{{${trackingField}}}", "content": "Track Your Shipment" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "Your order has shipped!" },
+    { "type": "text", "text": "Great news — your order is on its way. Use the link below to track your shipment." },
+    { "type": "button", "text": "Track Your Shipment", "url": "{{${trackingField}}}" }
+  ],
   "sendout_type": "transactional"
 }
 \`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`.
 
 💡 **Tip**: Pair this with an order confirmation email for a complete post-purchase flow.
 
@@ -148,28 +136,22 @@ ${discountSection}
 4. **Remove friction**: Link directly to the cart page
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Abandoned Cart Recovery",
   "trigger_tag": "shopify_checkout_abandoned",
   "subject": "You left something behind, {{Subscriber.FirstName}}!",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "Don't miss out!" },
-          { "type": "text", "content": "You left items in your cart. Complete your order before they sell out." },
-          { "type": "button", "href": "https://example.com/cart", "content": "Complete Your Order" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "Don't miss out!" },
+    { "type": "text", "text": "Hi {{Subscriber.FirstName}}, you left items in your cart. Complete your order before they sell out." },
+    { "type": "button", "text": "Complete Your Order", "url": "https://example.com/cart" }
+  ],
   "sendout_type": "marketing"
 }
 \`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`. Merge tags like \`{{Subscriber.FirstName}}\` are replaced with real subscriber data when the email is sent.
 
 💡 **Tip**: Abandoned cart emails perform best as a series (1h, 24h, 72h). Create multiple automations with different tags for each stage.
 
@@ -204,28 +186,22 @@ ${brandNote}
 - Avoid overly promotional tone
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Order Cancellation",
   "trigger_tag": "shopify_order_cancelled",
   "subject": "Your order has been cancelled",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "Order Cancelled" },
-          { "type": "text", "content": "Your order has been cancelled. If a payment was made, your refund will be processed within 5-10 business days." },
-          { "type": "button", "href": "https://example.com/support", "content": "Contact Support" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "Order Cancelled" },
+    { "type": "text", "text": "Your order has been cancelled. If a payment was made, your refund will be processed within 5-10 business days." },
+    { "type": "button", "text": "Contact Support", "url": "https://example.com/support" }
+  ],
   "sendout_type": "transactional"
 }
 \`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`.
 
 💡 **Tip**: If you use Shopify, run the \`setup_shopify_integration\` prompt first to ensure field mappings are configured.`;
 }
@@ -264,29 +240,23 @@ Common reservation fields: \`{{${checkin}}}\`, \`{{${checkout}}}\`, \`{{Booking.
 Adjust field names based on your booking system (Bookzen, custom, etc.).
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Reservation Confirmation",
   "trigger_tag": "bookzen_reservation_created",
   "subject": "Your reservation is confirmed!",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "Reservation Confirmed" },
-          { "type": "text", "content": "Your stay from {{${checkin}}} to {{${checkout}}} is confirmed. We look forward to welcoming you!" },
-          { "type": "text", "content": "Confirmation: {{Booking.ConfirmationNumber}} | Room: {{Booking.RoomType}}" },
-          { "type": "button", "href": "https://example.com/reservation", "content": "View Your Reservation" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "Reservation Confirmed" },
+    { "type": "text", "text": "Your stay from {{${checkin}}} to {{${checkout}}} is confirmed. We look forward to welcoming you!" },
+    { "type": "text", "text": "Confirmation: {{Booking.ConfirmationNumber}} | Room: {{Booking.RoomType}}" },
+    { "type": "button", "text": "View Your Reservation", "url": "https://example.com/reservation" }
+  ],
   "sendout_type": "transactional"
 }
 \`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`. Merge tags like \`{{${checkin}}}\` are replaced with real data when the email is sent.
 
 💡 **Tip**: If using Bookzen, run the \`setup_bookzen_integration\` prompt first to configure field mappings.`;
 }
@@ -319,28 +289,22 @@ ${brandNote}
 - **Weather**: Suggest packing tips if relevant
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Pre-Arrival Reminder",
   "trigger_tag": "bookzen_checkin_approaching",
   "subject": "Your stay is coming up - here's what you need to know",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "We can't wait to welcome you!" },
-          { "type": "text", "content": "Your stay is just around the corner. Check-in is from 3:00 PM. Free parking is available on-site." },
-          { "type": "button", "href": "https://example.com/directions", "content": "Get Directions" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "We can't wait to welcome you!" },
+    { "type": "text", "text": "Your stay is just around the corner. Check-in is from 3:00 PM. Free parking is available on-site." },
+    { "type": "button", "text": "Get Directions", "url": "https://example.com/directions" }
+  ],
   "sendout_type": "transactional"
 }
-\`\`\``;
+\`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`.`;
 }
 
 function feedbackRequestPrompt(brandStyleId?: string, feedbackUrl?: string): string {
@@ -377,28 +341,22 @@ ${ctaUrl}
 - **Make it easy**: Link directly to the review form, not a landing page
 
 ### Example tool call:
-Use \`rule_create_automation_email\` with:
+Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (content blocks):
 \`\`\`json
 {
   "name": "Post-Stay Feedback",
   "trigger_tag": "bookzen_checkout_completed",
   "subject": "How was your stay, {{Subscriber.FirstName}}?",
-  "template": {
-    "type": "rcml",
-    "content": [
-      {
-        "type": "section",
-        "content": [
-          { "type": "heading", "content": "Thank you for your stay!" },
-          { "type": "text", "content": "We hope you had a wonderful time. We'd love to hear your feedback — it only takes a minute." },
-          { "type": "button", "href": "${feedbackHref}", "content": "Share Your Feedback" }
-        ]
-      }
-    ]
-  },
+  "brand_style_id": 12345,
+  "sections": [
+    { "type": "heading", "text": "Thank you for your stay!" },
+    { "type": "text", "text": "Hi {{Subscriber.FirstName}}, we hope you had a wonderful time. We'd love to hear your feedback — it only takes a minute." },
+    { "type": "button", "text": "Share Your Feedback", "url": "${feedbackHref}" }
+  ],
   "sendout_type": "marketing"
 }
-\`\`\``;
+\`\`\`
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`. Merge tags like \`{{Subscriber.FirstName}}\` are replaced with real data when the email is sent.`;
 }
 
 // -- Vendor integration prompt content builders --
