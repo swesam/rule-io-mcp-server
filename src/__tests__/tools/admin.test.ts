@@ -164,6 +164,25 @@ describe('admin tools', () => {
       });
     });
 
+    it('creates brand style with description and is_default', async () => {
+      const created = { id: 5, name: 'WithMeta' };
+      mocks.createBrandStyleManually.mockResolvedValue(created);
+
+      const result = await handlers['rule_manage_brand_style']({
+        action: 'create_manual',
+        name: 'WithMeta',
+        description: 'Test description',
+        is_default: false,
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.createBrandStyleManually).toHaveBeenCalledWith({
+        name: 'WithMeta',
+        description: 'Test description',
+        is_default: false,
+      });
+    });
+
     it('updates brand style with colours and fonts', async () => {
       const updated = { id: 1, name: 'Updated' };
       mocks.updateBrandStyle.mockResolvedValue(updated);
@@ -181,6 +200,24 @@ describe('admin tools', () => {
         name: 'Updated',
         colours: [{ type: 'brand', hex: '#00FF00', brightness: 150 }],
         fonts: [{ type: 'body', name: 'Roboto', origin: 'google' }],
+      });
+    });
+
+    it('updates brand style with description and is_default false', async () => {
+      const updated = { id: 1, name: 'Same' };
+      mocks.updateBrandStyle.mockResolvedValue(updated);
+
+      const result = await handlers['rule_manage_brand_style']({
+        action: 'update',
+        id: 1,
+        description: 'New desc',
+        is_default: false,
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.updateBrandStyle).toHaveBeenCalledWith(1, {
+        description: 'New desc',
+        is_default: false,
       });
     });
   });
