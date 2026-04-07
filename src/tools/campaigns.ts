@@ -178,7 +178,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           (subscribers && subscribers.length > 0);
         if (!hasRecipients) {
           return errorResult(
-            'At least one recipient is required: provide "tags", "segments", or "subscribers". Use rule_list_tags or rule_list_segments to find IDs.'
+            'At least one recipient is required: provide "tags", "segments", or "subscribers". Use rule_list_tags or rule_list_segments to find tag/segment IDs, or rule_get_subscriber (by email) to find subscriber IDs.'
           );
         }
         if (!template && !brand_style_id) {

@@ -1,7 +1,7 @@
 # Guided QA Walkthrough: Rule.io MCP in Claude Desktop
 
 ## Context
-Testing all 31 tools, 7 resources, and 9 prompts as a marketer in Claude Desktop. Server is already running. I'll walk you through each step — paste the prompts, report back what happened, and we'll move to the next one.
+Testing all 35 tools, 7 resources, and 9 prompts as a marketer in Claude Desktop. Server is already running. I'll walk you through each step — paste the prompts, report back what happened, and we'll move to the next one.
 
 ---
 
