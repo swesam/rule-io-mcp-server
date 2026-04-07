@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { RuleClient, RuleBrandStyleCreateRequest } from 'rule-io-sdk';
+import type { RuleClient, RuleBrandStyleCreateRequest, RuleBrandStyleUpdateRequest } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, errorResult } from '../util/errors.js';
 
 const subscriberIdentifier = z
@@ -137,7 +137,7 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
             if (id === undefined) {
               return errorResult('id is required for update action.');
             }
-            const update: Record<string, unknown> = {};
+            const update: RuleBrandStyleUpdateRequest = {};
             if (name !== undefined) update.name = name;
             if (description !== undefined) update.description = description;
             if (is_default !== undefined) update.is_default = is_default;

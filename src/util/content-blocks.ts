@@ -80,7 +80,7 @@ export const sectionsSchema = z
 // RCML builder — converts content blocks to valid RCML sections
 // ---------------------------------------------------------------------------
 
-const HEADING_LEVEL: Record<string, 1 | 2 | 3> = {
+const HEADING_LEVEL: Record<'h1' | 'h2' | 'h3', 1 | 2 | 3> = {
   h1: 1,
   h2: 2,
   h3: 3,
