@@ -187,6 +187,7 @@ describe('campaign tools', () => {
         name: 'Branded Campaign',
         subject: 'Hello!',
         brand_style_id: 42,
+        tags: [{ id: 1, negative: false }],
         sendout_type: 'marketing',
       });
 
@@ -213,6 +214,7 @@ describe('campaign tools', () => {
           { type: 'text', text: 'Check out our deals' },
           { type: 'button', text: 'Shop Now', url: 'https://example.com/shop' },
         ],
+        tags: [{ id: 1, negative: false }],
         sendout_type: 'marketing',
       });
 
@@ -242,6 +244,7 @@ describe('campaign tools', () => {
         subject: 'Hello!',
         template: { body: [] },
         sections: [{ type: 'heading', text: 'Ignored' }],
+        tags: [{ id: 1, negative: false }],
         sendout_type: 'marketing',
       });
 
@@ -251,10 +254,23 @@ describe('campaign tools', () => {
       expect(call.sections).toBeUndefined();
     });
 
+    it('returns error when no recipients provided', async () => {
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'No Recipients',
+        subject: 'Hello!',
+        brand_style_id: 42,
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('At least one recipient');
+    });
+
     it('returns error when neither template nor brand_style_id provided', async () => {
       const result = await handlers['rule_create_campaign_email']({
         name: 'Bad Campaign',
         subject: 'Hello!',
+        tags: [{ id: 1, negative: false }],
         sendout_type: 'marketing',
       });
 
@@ -268,6 +284,7 @@ describe('campaign tools', () => {
         subject: 'Hello!',
         template: { body: [] },
         brand_style_id: 42,
+        tags: [{ id: 1, negative: false }],
         sendout_type: 'marketing',
       });
 
@@ -282,6 +299,7 @@ describe('campaign tools', () => {
         name: 'Fail',
         subject: 'Hello!',
         template: { body: [] },
+        tags: [{ id: 1, negative: false }],
         sendout_type: 'marketing',
       });
 

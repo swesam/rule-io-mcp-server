@@ -30,7 +30,7 @@ const MESSAGE_TYPES = ['email', 'text_message'] as const;
 export function registerAnalyticsTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_get_analytics',
-    'Get performance metrics for campaigns or automations. Provide a date range for a summary, or add object_type + object_ids + metrics for detailed per-object stats. When querying specific objects, all three parameters (object_type, object_ids, metrics) are required together.',
+    'Get email performance metrics. Call with just date_from and date_to for an account-wide summary (returns totals for all sends in the period — no object IDs needed). For a per-object breakdown, also provide object_type + object_ids + metrics (all three required together). Use rule_list_campaigns (object_type CAMPAIGN) or rule_list_automations (object_type AUTOMAIL) to find IDs first.',
     {
       date_from: z.string().describe('Start date (YYYY-MM-DD)'),
       date_to: z.string().describe('End date (YYYY-MM-DD)'),
