@@ -24,20 +24,18 @@ const headingBlockSchema = z.object({
     .enum(['h1', 'h2', 'h3'])
     .optional()
     .describe('Heading level (default: h1)'),
-  align: z.enum(['left', 'center', 'right']).optional(),
 });
 
 const textBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string().describe('Paragraph text'),
-  align: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  align: z.enum(['left', 'center', 'right']).optional(),
 });
 
 const buttonBlockSchema = z.object({
   type: z.literal('button'),
   text: z.string().describe('Button label'),
   url: z.string().describe('Button link URL'),
-  align: z.enum(['left', 'center', 'right']).optional(),
 });
 
 const imageBlockSchema = z.object({
@@ -91,12 +89,10 @@ function blockToElement(block: ContentBlock): RCMLColumnChild {
         createProseMirrorDoc(block.text),
         HEADING_LEVEL[block.level ?? 'h1']
       ) as RCMLColumnChild;
-    case 'text': {
-      const align = block.align === 'justify' ? undefined : block.align;
+    case 'text':
       return createBrandText(createProseMirrorDoc(block.text), {
-        align,
+        align: block.align,
       }) as RCMLColumnChild;
-    }
     case 'button':
       return createBrandButton(
         createProseMirrorDoc(block.text),
