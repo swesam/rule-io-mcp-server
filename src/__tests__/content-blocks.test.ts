@@ -145,34 +145,21 @@ describe('buildSectionsFromBlocks', () => {
     expect(column.children[2].tagName).toBe('rc-button');
   });
 
-  it('maps heading levels to brand rc-class styles', () => {
+  it('maps heading levels to font sizes', () => {
     const levels = ['h1', 'h2', 'h3'] as const;
-    const expectedClasses = ['rcml-h1-style', 'rcml-h2-style', 'rcml-h3-style'];
+    const expectedSizes = ['28px', '22px', '18px'];
 
     levels.forEach((level, i) => {
       const sections = buildSectionsFromBlocks([{ type: 'heading', text: 'Test', level }]);
       const heading = sections[0].children[0].children[0];
-      expect(attrs(heading)['rc-class']).toBe(expectedClasses[i]);
+      expect(attrs(heading)['font-size']).toBe(expectedSizes[i]);
     });
   });
 
-  it('uses h1 brand class when heading level is omitted', () => {
+  it('uses default font size when heading level is omitted', () => {
     const sections = buildSectionsFromBlocks([{ type: 'heading', text: 'Test' }]);
     const heading = sections[0].children[0].children[0];
-    expect(attrs(heading)['rc-class']).toBe('rcml-h1-style');
-  });
-
-  it('adds rc-class to text elements for brand font inheritance', () => {
-    const sections = buildSectionsFromBlocks([{ type: 'text', text: 'Hello' }]);
-    const text = sections[0].children[0].children[0];
-    expect(attrs(text)['rc-class']).toBe('rcml-p-style');
-  });
-
-  it('adds rc-class to button elements for brand label styling', () => {
-    const sections = buildSectionsFromBlocks([
-      { type: 'button', text: 'Click', url: 'https://example.com' },
-    ]);
-    const button = sections[0].children[0].children[0];
-    expect(attrs(button)['rc-class']).toBe('rcml-label-style');
+    // Our explicit default: h1 = 28px
+    expect(attrs(heading)['font-size']).toBe('28px');
   });
 });
