@@ -76,9 +76,9 @@ This is the big test — it creates 4 resources in one call. Use a brand style I
 ---
 
 ## Step 9: Analytics
-> **Prompt:** "How did my emails perform over the last 30 days? Show me opens, clicks, and bounces."
+> **Prompt:** "How did my emails perform over the last 30 days? Give me an overall summary."
 
-**What to look for:** `rule_get_analytics` with date range and metrics.
+**What to look for:** `rule_get_analytics` in summary mode with `date_from` and `date_to` only.
 
 ---
 

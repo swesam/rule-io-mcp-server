@@ -49,7 +49,7 @@ Use \`rule_create_automation_email\` with \`brand_style_id\` + \`sections\` (con
   "sendout_type": "transactional"
 }
 \`\`\`
-**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`. Merge tags like \`{{${field}}}\` are replaced with real subscriber data when the email is sent.
+**Note**: Replace \`brand_style_id\` with your actual ID from \`rule_list_brand_styles\`. Merge tags like \`{{${field}}}\` are replaced with real data (including subscriber and order/event fields) when the email is sent.
 
 ### Merge tags:
 Common order merge tags: \`{{${field}}}\`, \`{{Order.TotalPrice}}\`, \`{{Order.Currency}}\`
