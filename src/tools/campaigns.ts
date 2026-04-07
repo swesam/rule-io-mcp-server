@@ -2,6 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
+import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -92,15 +93,15 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_create_campaign_email',
-    'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
+    'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new campaign. Do not retry on timeout without first checking rule_list_campaigns for duplicates. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
     {
       name: z.string().describe('Campaign name (shown in Rule.io dashboard)'),
       subject: z.string().describe('Email subject line'),
       template: z
-        .record(z.any())
+        .record(z.string(), z.unknown())
         .optional()
         .describe(
-          'RCML document object for the email template content. Provide this OR brand_style_id, not both.'
+          'Full RCML document object for advanced use. Most callers should use brand_style_id + sections instead. Provide this OR brand_style_id, not both.'
         ),
       brand_style_id: z
         .number()
@@ -108,12 +109,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         .describe(
           'Brand style ID to auto-generate an editor-compatible RCML template. Use rule_list_brand_styles to find available styles. Provide this OR template, not both.'
         ),
-      sections: z
-        .array(z.record(z.any()))
-        .optional()
-        .describe(
-          'RCML body sections to include when using brand_style_id. Array of section/loop/switch objects.'
-        ),
+      sections: sectionsSchema.optional(),
       tags: z
         .array(
           z.object({
@@ -201,11 +197,11 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         };
 
         if (template) {
-          config.template = template as Parameters<typeof client.createCampaignEmail>[0]['template'];
+          config.template = template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
         } else {
           config.brandStyleId = brand_style_id;
           if (sections) {
-            config.sections = sections as Parameters<typeof client.createCampaignEmail>[0]['sections'];
+            config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
           }
         }
 

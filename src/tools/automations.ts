@@ -2,11 +2,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
+import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
 
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_automation_email',
-    'Create a complete email automation in one step. This sets up an automation, message, template, and dynamic set — equivalent to 4 separate API calls. Provide a trigger tag name, email subject, and either an RCML template document OR a brand_style_id to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
+    'Create a complete email automation in one step. This sets up an automation, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new automation. Do not retry on timeout without first checking rule_list_automations for duplicates. Provide a trigger tag name, email subject, and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
     {
       name: z.string().describe('Automation name (shown in Rule.io dashboard)'),
       trigger_tag: z
@@ -16,10 +17,10 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         ),
       subject: z.string().describe('Email subject line'),
       template: z
-        .record(z.any())
+        .record(z.string(), z.unknown())
         .optional()
         .describe(
-          'RCML document object for the email template content. Provide this OR brand_style_id, not both.'
+          'Full RCML document object for advanced use. Most callers should use brand_style_id + sections instead. Provide this OR brand_style_id, not both.'
         ),
       brand_style_id: z
         .number()
@@ -27,12 +28,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         .describe(
           'Brand style ID to auto-generate an editor-compatible RCML template. Use rule_list_brand_styles to find available styles. Provide this OR template, not both.'
         ),
-      sections: z
-        .array(z.record(z.any()))
-        .optional()
-        .describe(
-          'RCML body sections to include when using brand_style_id. Array of section/loop/switch objects.'
-        ),
+      sections: sectionsSchema.optional(),
       description: z.string().optional().describe('Description of this automation'),
       preheader: z.string().optional().describe('Preview text shown in email inbox'),
       from_name: z.string().optional().describe('Sender display name'),
@@ -94,11 +90,11 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         };
 
         if (template) {
-          config.template = template as Parameters<typeof client.createAutomationEmail>[0]['template'];
+          config.template = template as unknown as Parameters<typeof client.createAutomationEmail>[0]['template'];
         } else {
           config.brandStyleId = brand_style_id;
           if (sections) {
-            config.sections = sections as Parameters<typeof client.createAutomationEmail>[0]['sections'];
+            config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createAutomationEmail>[0]['sections'];
           }
         }
 

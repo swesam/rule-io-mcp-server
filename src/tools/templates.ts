@@ -10,7 +10,7 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
     {
       name: z.string().describe('Template name'),
       message_id: z.number().describe('Message ID to link this template to'),
-      content: z.record(z.any()).describe('RCML document object for the email content'),
+      content: z.record(z.string(), z.unknown()).describe('RCML document object for the email content'),
     },
     async ({ name, message_id, content }) => {
       try {
@@ -18,7 +18,7 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
           name,
           message_id,
           message_type: 'email' as const,
-          template: content as Parameters<typeof client.createTemplate>[0]['template'],
+          template: content as unknown as Parameters<typeof client.createTemplate>[0]['template'],
         };
         try {
           const result = await client.createTemplate(templatePayload);
