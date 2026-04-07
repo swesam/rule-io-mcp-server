@@ -61,6 +61,18 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
     },
     async ({ date_from, date_to, object_type, object_ids, metrics, message_type }) => {
       try {
+        const hasObjectType = object_type !== undefined;
+        const hasObjectIds = object_ids !== undefined;
+        const hasMetrics = metrics !== undefined;
+        if ((hasObjectType || hasObjectIds || hasMetrics) && !(hasObjectType && hasObjectIds && hasMetrics)) {
+          return {
+            isError: true as const,
+            content: [{
+              type: 'text' as const,
+              text: 'object_type, object_ids, and metrics must all be provided together. You cannot provide only a subset.',
+            }],
+          };
+        }
         const result =
           object_type && object_ids && metrics
             ? await client.getAnalytics({

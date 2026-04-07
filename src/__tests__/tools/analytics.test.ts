@@ -46,6 +46,7 @@ describe('analytics tools', () => {
       expect(mocks.getAnalytics).toHaveBeenCalledWith({
         date_from: '2025-01-01',
         date_to: '2025-01-31',
+        message_type: undefined,
       });
     });
 
@@ -91,6 +92,18 @@ describe('analytics tools', () => {
         date_to: '2025-01-31',
         message_type: 'email',
       });
+    });
+
+    it('returns error when only a subset of grouped params is provided', async () => {
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('must all be provided together');
+      expect(mocks.getAnalytics).not.toHaveBeenCalled();
     });
 
     it('returns error on API failure', async () => {
