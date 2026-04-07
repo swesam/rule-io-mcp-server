@@ -251,6 +251,26 @@ npm run type-check     # TypeScript type checking
 npm run start          # Start the MCP server
 ```
 
+### Local install in Claude Desktop
+
+When running from a local clone (instead of via `npx`), point at the **bin entry point**, not `dist/index.js`:
+
+```json
+{
+  "mcpServers": {
+    "rule-io": {
+      "command": "node",
+      "args": ["/path/to/rule-io-mcp-server/dist/bin/rule-io-mcp.js"],
+      "env": {
+        "RULE_IO_API_KEY": "your-api-key-here"
+      }
+    }
+  }
+}
+```
+
+> **Why not `dist/index.js`?** The library entry point uses an `import.meta.url` guard to avoid running when imported. Since tsup compiles to CJS, `import.meta.url` is undefined at runtime, and the process crashes. The bin entry point (`dist/bin/rule-io-mcp.js`) calls `main()` directly and is designed to be run as a CLI.
+
 ---
 
 ## Links
