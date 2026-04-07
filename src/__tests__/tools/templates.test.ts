@@ -8,6 +8,8 @@ interface MockClient {
   createTemplate: ReturnType<typeof vi.fn>;
   listTemplates: ReturnType<typeof vi.fn>;
   renderTemplate: ReturnType<typeof vi.fn>;
+  getTemplate: ReturnType<typeof vi.fn>;
+  deleteTemplate: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
@@ -16,6 +18,8 @@ function createMockClient(): MockClient {
     createTemplate: vi.fn(),
     listTemplates: vi.fn(),
     renderTemplate: vi.fn(),
+    getTemplate: vi.fn(),
+    deleteTemplate: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -122,6 +126,46 @@ describe('template tools', () => {
       // Second call should have a timestamp-suffixed name
       const secondCallName = mocks.createTemplate.mock.calls[1][0].name as string;
       expect(secondCallName).toMatch(/^Welcome - \d+$/);
+    });
+  });
+
+  describe('rule_get_template', () => {
+    it('returns template details when found', async () => {
+      const template = { id: 10, name: 'Welcome', message_id: 5 };
+      mocks.getTemplate.mockResolvedValue(template);
+
+      const result = await handlers['rule_get_template']({ id: 10 });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(template);
+    });
+
+    it('returns not found message when template is null', async () => {
+      mocks.getTemplate.mockResolvedValue(null);
+
+      const result = await handlers['rule_get_template']({ id: 999 });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain('Template 999 not found');
+    });
+  });
+
+  describe('rule_delete_template', () => {
+    it('deletes a template', async () => {
+      mocks.deleteTemplate.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_delete_template']({ id: 10 });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.deleteTemplate).toHaveBeenCalledWith(10);
+    });
+
+    it('handles API error', async () => {
+      mocks.deleteTemplate.mockRejectedValue(new RuleApiError('Not Found', 404));
+
+      const result = await handlers['rule_delete_template']({ id: 999 });
+
+      expect(result.isError).toBe(true);
     });
   });
 });

@@ -83,4 +83,39 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
       }
     }
   );
+
+  server.tool(
+    'rule_get_template',
+    'Get detailed information about a specific template by ID. Returns the template name, linked message, and RCML content.',
+    {
+      id: z.number().describe('Template ID'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await client.getTemplate(id);
+        if (!result) {
+          return textResult(`Template ${id} not found.`);
+        }
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_delete_template',
+    'Delete a template by ID. This permanently removes the template.',
+    {
+      id: z.number().describe('Template ID to delete'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await client.deleteTemplate(id);
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
 }

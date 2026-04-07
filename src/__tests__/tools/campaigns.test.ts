@@ -6,20 +6,28 @@ import { type ToolHandler, registerAndCapture } from './_helpers.js';
 
 interface MockClient {
   createCampaign: ReturnType<typeof vi.fn>;
+  createCampaignEmail: ReturnType<typeof vi.fn>;
   listCampaigns: ReturnType<typeof vi.fn>;
   getCampaign: ReturnType<typeof vi.fn>;
   updateCampaign: ReturnType<typeof vi.fn>;
+  deleteCampaign: ReturnType<typeof vi.fn>;
+  copyCampaign: ReturnType<typeof vi.fn>;
   scheduleCampaign: ReturnType<typeof vi.fn>;
+  listSegments: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
 function createMockClient(): MockClient {
   const mocks = {
     createCampaign: vi.fn(),
+    createCampaignEmail: vi.fn(),
     listCampaigns: vi.fn(),
     getCampaign: vi.fn(),
     updateCampaign: vi.fn(),
+    deleteCampaign: vi.fn(),
+    copyCampaign: vi.fn(),
     scheduleCampaign: vi.fn(),
+    listSegments: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -136,6 +144,137 @@ describe('campaign tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(updated);
+    });
+  });
+
+  describe('rule_create_campaign_email', () => {
+    it('creates campaign email with template', async () => {
+      mocks.createCampaignEmail.mockResolvedValue({
+        campaignId: 10,
+        messageId: 20,
+        templateId: 30,
+        dynamicSetId: 40,
+      });
+
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Newsletter',
+        subject: 'April Update',
+        template: { body: [] },
+        tags: [{ id: 5, negative: false }],
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        success: true,
+        campaign_id: 10,
+        message_id: 20,
+        template_id: 30,
+        dynamic_set_id: 40,
+      });
+    });
+
+    it('creates campaign email with brand_style_id', async () => {
+      mocks.createCampaignEmail.mockResolvedValue({
+        campaignId: 11,
+        messageId: 21,
+        templateId: 31,
+        dynamicSetId: 41,
+      });
+
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Branded Campaign',
+        subject: 'Hello!',
+        brand_style_id: 42,
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.createCampaignEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ brandStyleId: 42 })
+      );
+    });
+
+    it('returns error when neither template nor brand_style_id provided', async () => {
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Bad Campaign',
+        subject: 'Hello!',
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Provide either');
+    });
+
+    it('returns error when both template and brand_style_id provided', async () => {
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Bad Campaign',
+        subject: 'Hello!',
+        template: { body: [] },
+        brand_style_id: 42,
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('not both');
+    });
+
+    it('handles API error', async () => {
+      mocks.createCampaignEmail.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Fail',
+        subject: 'Hello!',
+        template: { body: [] },
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe('rule_delete_campaign', () => {
+    it('deletes a campaign', async () => {
+      mocks.deleteCampaign.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_delete_campaign']({ id: 1 });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.deleteCampaign).toHaveBeenCalledWith(1);
+    });
+
+    it('handles API error', async () => {
+      mocks.deleteCampaign.mockRejectedValue(new RuleApiError('Not Found', 404));
+
+      const result = await handlers['rule_delete_campaign']({ id: 999 });
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe('rule_copy_campaign', () => {
+    it('copies a campaign and returns the new copy', async () => {
+      const copy = { data: { id: 2, name: 'Summer Sale (Copy)' } };
+      mocks.copyCampaign.mockResolvedValue(copy);
+
+      const result = await handlers['rule_copy_campaign']({ id: 1 });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(copy);
+      expect(mocks.copyCampaign).toHaveBeenCalledWith(1);
+    });
+  });
+
+  describe('rule_list_segments', () => {
+    it('returns segment list', async () => {
+      const segments = { data: [{ id: 1, name: 'VIP Customers' }], total: 1 };
+      mocks.listSegments.mockResolvedValue(segments);
+
+      const result = await handlers['rule_list_segments']({ page: 1, per_page: 25 });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(segments);
     });
   });
 });

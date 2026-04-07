@@ -7,9 +7,10 @@ import { type ToolHandler, registerAndCapture } from './_helpers.js';
 interface MockClient {
   getTagIdByName: ReturnType<typeof vi.fn>;
   createAutomationEmail: ReturnType<typeof vi.fn>;
-  listAutomails: ReturnType<typeof vi.fn>;
-  getAutomail: ReturnType<typeof vi.fn>;
-  updateAutomail: ReturnType<typeof vi.fn>;
+  listAutomations: ReturnType<typeof vi.fn>;
+  getAutomation: ReturnType<typeof vi.fn>;
+  updateAutomation: ReturnType<typeof vi.fn>;
+  deleteAutomation: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
@@ -17,9 +18,10 @@ function createMockClient(): MockClient {
   const mocks = {
     getTagIdByName: vi.fn(),
     createAutomationEmail: vi.fn(),
-    listAutomails: vi.fn(),
-    getAutomail: vi.fn(),
-    updateAutomail: vi.fn(),
+    listAutomations: vi.fn(),
+    getAutomation: vi.fn(),
+    updateAutomation: vi.fn(),
+    deleteAutomation: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -34,9 +36,10 @@ describe('automation tools', () => {
   });
 
   describe('rule_create_automation_email', () => {
-    it('creates automation email on success', async () => {
+    it('creates automation email with template on success', async () => {
       mocks.getTagIdByName.mockResolvedValue(10);
       mocks.createAutomationEmail.mockResolvedValue({
+        automationId: 100,
         automailId: 100,
         messageId: 200,
         templateId: 300,
@@ -55,11 +58,61 @@ describe('automation tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         success: true,
-        automail_id: 100,
+        automation_id: 100,
         message_id: 200,
         template_id: 300,
         dynamic_set_id: 400,
       });
+    });
+
+    it('creates automation email with brand_style_id', async () => {
+      mocks.getTagIdByName.mockResolvedValue(10);
+      mocks.createAutomationEmail.mockResolvedValue({
+        automationId: 101,
+        automailId: 101,
+        messageId: 201,
+        templateId: 301,
+        dynamicSetId: 401,
+      });
+
+      const result = await handlers['rule_create_automation_email']({
+        name: 'Branded Email',
+        trigger_tag: 'welcome',
+        subject: 'Welcome!',
+        brand_style_id: 42,
+        sendout_type: 'transactional',
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.createAutomationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({ brandStyleId: 42 })
+      );
+    });
+
+    it('returns error when neither template nor brand_style_id provided', async () => {
+      const result = await handlers['rule_create_automation_email']({
+        name: 'Welcome Email',
+        trigger_tag: 'welcome',
+        subject: 'Welcome!',
+        sendout_type: 'transactional',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Provide either');
+    });
+
+    it('returns error when both template and brand_style_id provided', async () => {
+      const result = await handlers['rule_create_automation_email']({
+        name: 'Welcome Email',
+        trigger_tag: 'welcome',
+        subject: 'Welcome!',
+        template: { body: [] },
+        brand_style_id: 42,
+        sendout_type: 'transactional',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('not both');
     });
 
     it('returns error when trigger tag is not found', async () => {
@@ -96,24 +149,24 @@ describe('automation tools', () => {
     });
   });
 
-  describe('rule_list_automails', () => {
-    it('returns list of automails', async () => {
-      const automails = { data: [{ id: 1, name: 'Auto 1' }], total: 1 };
-      mocks.listAutomails.mockResolvedValue(automails);
+  describe('rule_list_automations', () => {
+    it('returns list of automations', async () => {
+      const automations = { data: [{ id: 1, name: 'Auto 1' }], total: 1 };
+      mocks.listAutomations.mockResolvedValue(automations);
 
-      const result = await handlers['rule_list_automails']({
+      const result = await handlers['rule_list_automations']({
         page: 1,
         per_page: 25,
       });
 
       expect(result.isError).toBeUndefined();
-      expect(JSON.parse(result.content[0].text)).toEqual(automails);
+      expect(JSON.parse(result.content[0].text)).toEqual(automations);
     });
 
     it('handles API error', async () => {
-      mocks.listAutomails.mockRejectedValue(new RuleApiError('Forbidden', 403));
+      mocks.listAutomations.mockRejectedValue(new RuleApiError('Forbidden', 403));
 
-      const result = await handlers['rule_list_automails']({
+      const result = await handlers['rule_list_automations']({
         page: 1,
         per_page: 25,
       });
@@ -122,33 +175,33 @@ describe('automation tools', () => {
     });
   });
 
-  describe('rule_get_automail', () => {
-    it('returns automail details when found', async () => {
-      const automail = { id: 1, name: 'Welcome', active: true };
-      mocks.getAutomail.mockResolvedValue(automail);
+  describe('rule_get_automation', () => {
+    it('returns automation details when found', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      mocks.getAutomation.mockResolvedValue(automation);
 
-      const result = await handlers['rule_get_automail']({ id: 1 });
+      const result = await handlers['rule_get_automation']({ id: 1 });
 
       expect(result.isError).toBeUndefined();
-      expect(JSON.parse(result.content[0].text)).toEqual(automail);
+      expect(JSON.parse(result.content[0].text)).toEqual(automation);
     });
 
-    it('returns not found message when automail is null', async () => {
-      mocks.getAutomail.mockResolvedValue(null);
+    it('returns not found message when automation is null', async () => {
+      mocks.getAutomation.mockResolvedValue(null);
 
-      const result = await handlers['rule_get_automail']({ id: 999 });
+      const result = await handlers['rule_get_automation']({ id: 999 });
 
       expect(result.isError).toBeUndefined();
-      expect(result.content[0].text).toContain('Automail 999 not found');
+      expect(result.content[0].text).toContain('Automation 999 not found');
     });
   });
 
-  describe('rule_update_automail', () => {
-    it('updates automail successfully', async () => {
+  describe('rule_update_automation', () => {
+    it('updates automation successfully', async () => {
       const updated = { id: 1, active: false };
-      mocks.updateAutomail.mockResolvedValue(updated);
+      mocks.updateAutomation.mockResolvedValue(updated);
 
-      const result = await handlers['rule_update_automail']({
+      const result = await handlers['rule_update_automation']({
         id: 1,
         active: false,
       });
@@ -158,7 +211,7 @@ describe('automation tools', () => {
     });
 
     it('returns error when trigger_type provided without trigger_id', async () => {
-      const result = await handlers['rule_update_automail']({
+      const result = await handlers['rule_update_automation']({
         id: 1,
         trigger_type: 'tag',
       });
@@ -170,7 +223,7 @@ describe('automation tools', () => {
     });
 
     it('returns error when trigger_id provided without trigger_type', async () => {
-      const result = await handlers['rule_update_automail']({
+      const result = await handlers['rule_update_automation']({
         id: 1,
         trigger_id: 5,
       });
@@ -182,17 +235,36 @@ describe('automation tools', () => {
     });
 
     it('sends trigger update when both trigger_type and trigger_id provided', async () => {
-      mocks.updateAutomail.mockResolvedValue({ id: 1 });
+      mocks.updateAutomation.mockResolvedValue({ id: 1 });
 
-      await handlers['rule_update_automail']({
+      await handlers['rule_update_automation']({
         id: 1,
         trigger_type: 'tag',
         trigger_id: 42,
       });
 
-      expect(mocks.updateAutomail).toHaveBeenCalledWith(1, {
+      expect(mocks.updateAutomation).toHaveBeenCalledWith(1, {
         trigger: { type: 'TAG', id: 42 },
       });
+    });
+  });
+
+  describe('rule_delete_automation', () => {
+    it('deletes an automation', async () => {
+      mocks.deleteAutomation.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_delete_automation']({ id: 1 });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.deleteAutomation).toHaveBeenCalledWith(1);
+    });
+
+    it('handles API error', async () => {
+      mocks.deleteAutomation.mockRejectedValue(new RuleApiError('Not Found', 404));
+
+      const result = await handlers['rule_delete_automation']({ id: 999 });
+
+      expect(result.isError).toBe(true);
     });
   });
 });
