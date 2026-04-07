@@ -88,7 +88,7 @@ function blockToElement(block: ContentBlock): RCMLColumnChild {
     case 'heading':
       return createHeading(block.text, {
         align: block.align,
-        fontSize: block.level ? HEADING_FONT_SIZE[block.level] : undefined,
+        fontSize: HEADING_FONT_SIZE[block.level ?? 'h1'],
       });
     case 'text':
       return createText(block.text, { align: block.align });

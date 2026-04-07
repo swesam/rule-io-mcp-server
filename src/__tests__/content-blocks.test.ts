@@ -159,7 +159,7 @@ describe('buildSectionsFromBlocks', () => {
   it('uses default font size when heading level is omitted', () => {
     const sections = buildSectionsFromBlocks([{ type: 'heading', text: 'Test' }]);
     const heading = sections[0].children[0].children[0];
-    // Default from SDK's createHeading is 28px (same as h1)
+    // Our explicit default: h1 = 28px
     expect(attrs(heading)['font-size']).toBe('28px');
   });
 });
