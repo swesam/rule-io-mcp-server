@@ -92,16 +92,16 @@ function blockToElement(block: ContentBlock): RCMLColumnChild {
       return createBrandHeading(
         createProseMirrorDoc(block.text),
         HEADING_LEVEL[block.level ?? 'h1']
-      ) as RCMLColumnChild;
+      );
     case 'text':
       return createBrandText(createProseMirrorDoc(block.text), {
         align: block.align,
-      }) as RCMLColumnChild;
+      });
     case 'button':
       return createBrandButton(
         createProseMirrorDoc(block.text),
         block.url
-      ) as RCMLColumnChild;
+      );
     case 'image':
       return createImage(block.src, { alt: block.alt, href: block.href });
     case 'divider':
