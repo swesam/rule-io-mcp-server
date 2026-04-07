@@ -67,6 +67,16 @@ describe('sectionsSchema', () => {
     const result = sectionsSchema.safeParse([]);
     expect(result.success).toBe(false);
   });
+
+  it('transforms justify alignment to left on text blocks', () => {
+    const result = sectionsSchema.safeParse([
+      { type: 'text', text: 'Hello', align: 'justify' },
+    ]);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data[0]).toHaveProperty('align', 'left');
+    }
+  });
 });
 
 describe('buildSectionsFromBlocks', () => {

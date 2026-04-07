@@ -24,20 +24,22 @@ const headingBlockSchema = z.object({
     .enum(['h1', 'h2', 'h3'])
     .optional()
     .describe('Heading level (default: h1)'),
-  align: z.enum(['left', 'center', 'right']).optional(),
 });
 
 const textBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string().describe('Paragraph text'),
-  align: z.enum(['left', 'center', 'right', 'justify']).optional(),
+  align: z
+    .enum(['left', 'center', 'right', 'justify'])
+    .optional()
+    .transform((align) => (align === 'justify' ? 'left' : align))
+    .describe('Text alignment. "justify" is normalized to "left" for brand template compatibility.'),
 });
 
 const buttonBlockSchema = z.object({
   type: z.literal('button'),
   text: z.string().describe('Button label'),
   url: z.string().describe('Button link URL'),
-  align: z.enum(['left', 'center', 'right']).optional(),
 });
 
 const imageBlockSchema = z.object({
@@ -71,14 +73,14 @@ export const sectionsSchema = z
   .array(contentBlockSchema)
   .min(1)
   .describe(
-    'Optional email body content blocks rendered top-to-bottom. If omitted with brand_style_id, the brand style generates a default layout. Supported types: heading (optional level h1/h2/h3), text, button (requires url), image (requires src), divider, spacer.'
+    'Optional email body content blocks rendered top-to-bottom. If omitted with brand_style_id, the brand style generates a default layout. Supported types: heading (optional level h1/h2/h3), text (supports align), button (requires url, centered by brand style), image (requires src), divider, spacer. Note: heading and button alignment is controlled by the brand style and cannot be overridden.'
   );
 
 // ---------------------------------------------------------------------------
 // RCML builder — converts content blocks to valid RCML sections
 // ---------------------------------------------------------------------------
 
-const HEADING_LEVEL: Record<string, 1 | 2 | 3> = {
+const HEADING_LEVEL: Record<'h1' | 'h2' | 'h3', 1 | 2 | 3> = {
   h1: 1,
   h2: 2,
   h3: 3,
@@ -91,12 +93,10 @@ function blockToElement(block: ContentBlock): RCMLColumnChild {
         createProseMirrorDoc(block.text),
         HEADING_LEVEL[block.level ?? 'h1']
       ) as RCMLColumnChild;
-    case 'text': {
-      const align = block.align === 'justify' ? undefined : block.align;
+    case 'text':
       return createBrandText(createProseMirrorDoc(block.text), {
-        align,
+        align: block.align,
       }) as RCMLColumnChild;
-    }
     case 'button':
       return createBrandButton(
         createProseMirrorDoc(block.text),

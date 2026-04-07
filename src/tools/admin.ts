@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { RuleClient, RuleBrandStyleCreateRequest } from 'rule-io-sdk';
+import type { RuleClient, RuleBrandStyleCreateRequest, RuleBrandStyleUpdateRequest } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, errorResult } from '../util/errors.js';
 
 const subscriberIdentifier = z
@@ -17,8 +17,12 @@ const colourSchema = z.object({
   type: z
     .enum(['accent', 'dark', 'light', 'brand', 'side'])
     .describe('Colour role: accent (buttons), dark (text), light (fallback bg), brand (primary), side (body bg)'),
-  hex: z.string().describe('Hex colour value, e.g. "#FF6600"'),
-  brightness: z.number().describe('Brightness value 0-255'),
+  hex: z
+    .string()
+    .trim()
+    .regex(/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/, 'Hex colour must be in the format #RGB or #RRGGBB')
+    .describe('Hex colour value, e.g. "#FF6600"'),
+  brightness: z.number().int().min(0).max(255).describe('Brightness value 0-255'),
 });
 
 const fontSchema = z.object({
@@ -77,7 +81,7 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
 
   server.tool(
     'rule_manage_brand_style',
-    'Create, update, or delete a brand style. Use "create_from_domain" to automatically extract branding from a website URL, "create_manual" to set colors/fonts/links directly, "update" to modify visual properties, or "delete" to remove. Note: image/logo uploads are not supported — use create_from_domain or the Rule.io UI for logos.',
+    'Create, update, or delete a brand style. Use "create_from_domain" to automatically extract branding from a website URL, "create_manual" to set colours/fonts/links directly, "update" to modify visual properties, or "delete" to remove. Note: image/logo uploads are not supported — use create_from_domain or the Rule.io UI for logos.',
     {
       action: z
         .enum(['create_from_domain', 'create_manual', 'update', 'delete'])
@@ -121,11 +125,11 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
               return errorResult('name is required for create_manual action.');
             }
             const request: RuleBrandStyleCreateRequest = { name };
-            if (description) request.description = description;
+            if (description !== undefined) request.description = description;
             if (is_default !== undefined) request.is_default = is_default;
-            if (colours) request.colours = colours;
-            if (fonts) request.fonts = fonts;
-            if (links) request.links = links;
+            if (colours !== undefined) request.colours = colours;
+            if (fonts !== undefined) request.fonts = fonts;
+            if (links !== undefined) request.links = links;
             const result = await client.createBrandStyleManually(request);
             return jsonResult(result);
           }
@@ -133,13 +137,13 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
             if (id === undefined) {
               return errorResult('id is required for update action.');
             }
-            const update: Record<string, unknown> = {};
-            if (name) update.name = name;
-            if (description) update.description = description;
+            const update: RuleBrandStyleUpdateRequest = {};
+            if (name !== undefined) update.name = name;
+            if (description !== undefined) update.description = description;
             if (is_default !== undefined) update.is_default = is_default;
-            if (colours) update.colours = colours;
-            if (fonts) update.fonts = fonts;
-            if (links) update.links = links;
+            if (colours !== undefined) update.colours = colours;
+            if (fonts !== undefined) update.fonts = fonts;
+            if (links !== undefined) update.links = links;
             const result = await client.updateBrandStyle(id, update);
             return jsonResult(result);
           }
