@@ -30,7 +30,7 @@ describe('tag tools', () => {
         { id: 1, name: 'welcome' },
         { id: 2, name: 'vip' },
       ];
-      mocks.getTags.mockResolvedValue({ tags });
+      mocks.getTags.mockResolvedValue({ data: tags });
 
       const result = await handlers['rule_list_tags']({});
 
