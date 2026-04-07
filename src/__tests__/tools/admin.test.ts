@@ -6,6 +6,7 @@ import { type ToolHandler, registerAndCapture } from './_helpers.js';
 
 interface MockClient {
   listBrandStyles: ReturnType<typeof vi.fn>;
+  getBrandStyle: ReturnType<typeof vi.fn>;
   createBrandStyleFromDomain: ReturnType<typeof vi.fn>;
   createBrandStyleManually: ReturnType<typeof vi.fn>;
   updateBrandStyle: ReturnType<typeof vi.fn>;
@@ -18,6 +19,7 @@ interface MockClient {
 function createMockClient(): MockClient {
   const mocks = {
     listBrandStyles: vi.fn(),
+    getBrandStyle: vi.fn(),
     createBrandStyleFromDomain: vi.fn(),
     createBrandStyleManually: vi.fn(),
     updateBrandStyle: vi.fn(),
@@ -55,6 +57,44 @@ describe('admin tools', () => {
       mocks.listBrandStyles.mockRejectedValue(new RuleApiError('Server Error', 500));
 
       const result = await handlers['rule_list_brand_styles']({});
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
+  });
+
+  describe('rule_get_brand_style', () => {
+    it('returns full brand style details', async () => {
+      const style = {
+        id: 1,
+        name: 'Default',
+        colours: [{ type: 'accent', hex: '#FF6600', brightness: 180 }],
+        fonts: [{ type: 'title', name: 'Inter', origin: 'google' }],
+        images: [{ type: 'logo', public_path: 'https://example.com/logo.png' }],
+        links: [{ type: 'website', link: 'https://example.com' }],
+      };
+      mocks.getBrandStyle.mockResolvedValue(style);
+
+      const result = await handlers['rule_get_brand_style']({ id: 1 });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(style);
+      expect(mocks.getBrandStyle).toHaveBeenCalledWith(1);
+    });
+
+    it('returns error when brand style not found', async () => {
+      mocks.getBrandStyle.mockResolvedValue(null);
+
+      const result = await handlers['rule_get_brand_style']({ id: 999 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('not found');
+    });
+
+    it('returns error on API failure', async () => {
+      mocks.getBrandStyle.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_get_brand_style']({ id: 1 });
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Rule.io API error (500)');
@@ -101,6 +141,47 @@ describe('admin tools', () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('domain is required');
+    });
+
+    it('creates brand style with colours, fonts, and links', async () => {
+      const created = { id: 4, name: 'Custom' };
+      mocks.createBrandStyleManually.mockResolvedValue(created);
+
+      const result = await handlers['rule_manage_brand_style']({
+        action: 'create_manual',
+        name: 'Custom',
+        colours: [{ type: 'accent', hex: '#FF0000', brightness: 200 }],
+        fonts: [{ type: 'title', name: 'Inter', origin: 'google' }],
+        links: [{ type: 'website', link: 'https://example.com' }],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.createBrandStyleManually).toHaveBeenCalledWith({
+        name: 'Custom',
+        colours: [{ type: 'accent', hex: '#FF0000', brightness: 200 }],
+        fonts: [{ type: 'title', name: 'Inter', origin: 'google' }],
+        links: [{ type: 'website', link: 'https://example.com' }],
+      });
+    });
+
+    it('updates brand style with colours and fonts', async () => {
+      const updated = { id: 1, name: 'Updated' };
+      mocks.updateBrandStyle.mockResolvedValue(updated);
+
+      const result = await handlers['rule_manage_brand_style']({
+        action: 'update',
+        id: 1,
+        name: 'Updated',
+        colours: [{ type: 'brand', hex: '#00FF00', brightness: 150 }],
+        fonts: [{ type: 'body', name: 'Roboto', origin: 'google' }],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.updateBrandStyle).toHaveBeenCalledWith(1, {
+        name: 'Updated',
+        colours: [{ type: 'brand', hex: '#00FF00', brightness: 150 }],
+        fonts: [{ type: 'body', name: 'Roboto', origin: 'google' }],
+      });
     });
   });
 

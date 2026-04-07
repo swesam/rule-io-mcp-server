@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
-import type { RuleClient } from 'rule-io-sdk';
+import type { RuleClient, RuleBrandStyleCreateRequest } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, errorResult } from '../util/errors.js';
 
 const subscriberIdentifier = z
@@ -13,10 +13,38 @@ const subscriberIdentifier = z
     'Each subscriber must include at least one of email or phone_number'
   );
 
+const colourSchema = z.object({
+  type: z
+    .enum(['accent', 'dark', 'light', 'brand', 'side'])
+    .describe('Colour role: accent (buttons), dark (text), light (fallback bg), brand (primary), side (body bg)'),
+  hex: z.string().describe('Hex colour value, e.g. "#FF6600"'),
+  brightness: z.number().describe('Brightness value 0-255'),
+});
+
+const fontSchema = z.object({
+  type: z.enum(['title', 'body']).describe('Font role: title (headings) or body (paragraphs)'),
+  name: z.string().describe('Font display name, e.g. "Inter"'),
+  origin: z
+    .enum(['google', 'system'])
+    .describe('Font source: google (Google Fonts) or system (system font stack). Custom font uploads are not supported via MCP.'),
+  origin_id: z.string().optional().describe('Font identifier at origin (e.g. Google Fonts ID)'),
+  weights: z.array(z.string()).optional().describe('Available weights, e.g. ["400", "700"]'),
+});
+
+const linkSchema = z.object({
+  type: z
+    .enum([
+      'instagram', 'facebook', 'twitter', 'github', 'youtube',
+      'linkedin', 'crunchbase', 'website', 'pinterest', 'tiktok',
+    ])
+    .describe('Social link type'),
+  link: z.string().describe('Full URL'),
+});
+
 export function registerAdminTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_list_brand_styles',
-    'List all brand styles in your Rule.io account. Brand styles define the visual identity (colors, fonts, logo) applied to email templates.',
+    'List all brand styles in your Rule.io account. Returns summary info (id, name, is_default). Use rule_get_brand_style to inspect full details (colours, fonts, logo, links).',
     {},
     async () => {
       try {
@@ -29,8 +57,27 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
   );
 
   server.tool(
+    'rule_get_brand_style',
+    'Get full details of a brand style including colours, fonts, images (logo), and social links. Use this to inspect the visual identity before generating templates.',
+    {
+      id: z.number().describe('Brand style ID'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await client.getBrandStyle(id);
+        if (!result) {
+          return errorResult(`Brand style with id ${id} not found.`);
+        }
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
     'rule_manage_brand_style',
-    'Create, update, or delete a brand style. Use "create_from_domain" to automatically extract branding from a website URL, "create_manual" to set colors/fonts/logo directly, "update" to modify, or "delete" to remove.',
+    'Create, update, or delete a brand style. Use "create_from_domain" to automatically extract branding from a website URL, "create_manual" to set colors/fonts/links directly, "update" to modify visual properties, or "delete" to remove. Note: image/logo uploads are not supported — use create_from_domain or the Rule.io UI for logos.',
     {
       action: z
         .enum(['create_from_domain', 'create_manual', 'update', 'delete'])
@@ -44,8 +91,22 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
         .optional()
         .describe('Website URL to extract branding from (for create_from_domain)'),
       name: z.string().optional().describe('Brand style name'),
+      description: z.string().optional().describe('Brand style description'),
+      is_default: z.boolean().optional().describe('Set as the default brand style'),
+      colours: z
+        .array(colourSchema)
+        .optional()
+        .describe('Brand colours (for create_manual and update)'),
+      fonts: z
+        .array(fontSchema)
+        .optional()
+        .describe('Brand fonts — Google or system fonts only (for create_manual and update)'),
+      links: z
+        .array(linkSchema)
+        .optional()
+        .describe('Social media / website links (for create_manual and update)'),
     },
-    async ({ action, id, domain, name }) => {
+    async ({ action, id, domain, name, description, is_default, colours, fonts, links }) => {
       try {
         switch (action) {
           case 'create_from_domain': {
@@ -59,9 +120,13 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
             if (!name) {
               return errorResult('name is required for create_manual action.');
             }
-            const result = await client.createBrandStyleManually({
-              name,
-            });
+            const request: RuleBrandStyleCreateRequest = { name };
+            if (description) request.description = description;
+            if (is_default !== undefined) request.is_default = is_default;
+            if (colours) request.colours = colours;
+            if (fonts) request.fonts = fonts;
+            if (links) request.links = links;
+            const result = await client.createBrandStyleManually(request);
             return jsonResult(result);
           }
           case 'update': {
@@ -70,6 +135,11 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
             }
             const update: Record<string, unknown> = {};
             if (name) update.name = name;
+            if (description) update.description = description;
+            if (is_default !== undefined) update.is_default = is_default;
+            if (colours) update.colours = colours;
+            if (fonts) update.fonts = fonts;
+            if (links) update.links = links;
             const result = await client.updateBrandStyle(id, update);
             return jsonResult(result);
           }
