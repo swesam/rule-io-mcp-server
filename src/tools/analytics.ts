@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { handleRuleError, jsonResult } from '../util/errors.js';
+import { errorResult, handleRuleError, jsonResult } from '../util/errors.js';
 
 const OBJECT_TYPES = [
   'AB_TEST',
@@ -65,13 +65,9 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
         const hasObjectIds = object_ids !== undefined;
         const hasMetrics = metrics !== undefined;
         if ((hasObjectType || hasObjectIds || hasMetrics) && !(hasObjectType && hasObjectIds && hasMetrics)) {
-          return {
-            isError: true as const,
-            content: [{
-              type: 'text' as const,
-              text: 'object_type, object_ids, and metrics must all be provided together. You cannot provide only a subset.',
-            }],
-          };
+          return errorResult(
+            'object_type, object_ids, and metrics must all be provided together. You cannot provide only a subset.',
+          );
         }
         const result =
           object_type && object_ids && metrics

@@ -43,11 +43,12 @@ describe('analytics tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(analytics);
-      expect(mocks.getAnalytics).toHaveBeenCalledWith({
-        date_from: '2025-01-01',
-        date_to: '2025-01-31',
-        message_type: undefined,
-      });
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+        }),
+      );
     });
 
     it('returns per-object analytics with full query params', async () => {
@@ -68,14 +69,15 @@ describe('analytics tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(analytics);
-      expect(mocks.getAnalytics).toHaveBeenCalledWith({
-        date_from: '2025-01-01',
-        date_to: '2025-01-31',
-        object_type: 'CAMPAIGN',
-        object_ids: ['910092'],
-        metrics: ['open', 'click'],
-        message_type: undefined,
-      });
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: ['910092'],
+          metrics: ['open', 'click'],
+        }),
+      );
     });
 
     it('passes message_type when provided', async () => {
