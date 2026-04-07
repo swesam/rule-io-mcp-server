@@ -11,7 +11,7 @@ export function registerTagTools(server: McpServer, client: RuleClient): void {
     async () => {
       try {
         const response = await client.getTags();
-        const tags = (response as { tags?: Array<{ id: number; name: string }> }).tags ?? [];
+        const tags = response.tags ?? [];
         return jsonResult(tags);
       } catch (error) {
         return handleRuleError(error);
