@@ -68,11 +68,14 @@ describe('sectionsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects justify alignment on text blocks', () => {
+  it('transforms justify alignment to left on text blocks', () => {
     const result = sectionsSchema.safeParse([
       { type: 'text', text: 'Hello', align: 'justify' },
     ]);
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data[0]).toHaveProperty('align', 'left');
+    }
   });
 });
 

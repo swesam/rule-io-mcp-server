@@ -29,7 +29,11 @@ const headingBlockSchema = z.object({
 const textBlockSchema = z.object({
   type: z.literal('text'),
   text: z.string().describe('Paragraph text'),
-  align: z.enum(['left', 'center', 'right']).optional(),
+  align: z
+    .enum(['left', 'center', 'right', 'justify'])
+    .optional()
+    .transform((align) => (align === 'justify' ? 'left' : align))
+    .describe('Text alignment. "justify" is normalized to "left" for brand template compatibility.'),
 });
 
 const buttonBlockSchema = z.object({
@@ -69,7 +73,7 @@ export const sectionsSchema = z
   .array(contentBlockSchema)
   .min(1)
   .describe(
-    'Optional email body content blocks rendered top-to-bottom. If omitted with brand_style_id, the brand style generates a default layout. Supported types: heading (optional level h1/h2/h3), text, button (requires url), image (requires src), divider, spacer.'
+    'Optional email body content blocks rendered top-to-bottom. If omitted with brand_style_id, the brand style generates a default layout. Supported types: heading (optional level h1/h2/h3), text (supports align), button (requires url, centered by brand style), image (requires src), divider, spacer. Note: heading and button alignment is controlled by the brand style and cannot be overridden.'
   );
 
 // ---------------------------------------------------------------------------

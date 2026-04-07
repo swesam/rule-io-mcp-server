@@ -81,7 +81,7 @@ export function registerAdminTools(server: McpServer, client: RuleClient): void 
 
   server.tool(
     'rule_manage_brand_style',
-    'Create, update, or delete a brand style. Use "create_from_domain" to automatically extract branding from a website URL, "create_manual" to set colors/fonts/links directly, "update" to modify visual properties, or "delete" to remove. Note: image/logo uploads are not supported — use create_from_domain or the Rule.io UI for logos.',
+    'Create, update, or delete a brand style. Use "create_from_domain" to automatically extract branding from a website URL, "create_manual" to set colours/fonts/links directly, "update" to modify visual properties, or "delete" to remove. Note: image/logo uploads are not supported — use create_from_domain or the Rule.io UI for logos.',
     {
       action: z
         .enum(['create_from_domain', 'create_manual', 'update', 'delete'])
