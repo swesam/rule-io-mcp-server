@@ -196,6 +196,61 @@ describe('campaign tools', () => {
       );
     });
 
+    it('creates campaign email with brand_style_id and sections', async () => {
+      mocks.createCampaignEmail.mockResolvedValue({
+        campaignId: 12,
+        messageId: 22,
+        templateId: 32,
+        dynamicSetId: 42,
+      });
+
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Spring Sale',
+        subject: 'Spring deals!',
+        brand_style_id: 42,
+        sections: [
+          { type: 'heading', text: 'Spring Sale' },
+          { type: 'text', text: 'Check out our deals' },
+          { type: 'button', text: 'Shop Now', url: 'https://example.com/shop' },
+        ],
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const call = mocks.createCampaignEmail.mock.calls[0][0];
+      expect(call.brandStyleId).toBe(42);
+      // Sections should be converted to RCML — array of rc-section objects
+      expect(call.sections).toHaveLength(1);
+      expect(call.sections[0].tagName).toBe('rc-section');
+      expect(call.sections[0].children[0].tagName).toBe('rc-column');
+      expect(call.sections[0].children[0].children).toHaveLength(3);
+      expect(call.sections[0].children[0].children[0].tagName).toBe('rc-heading');
+      expect(call.sections[0].children[0].children[1].tagName).toBe('rc-text');
+      expect(call.sections[0].children[0].children[2].tagName).toBe('rc-button');
+    });
+
+    it('ignores sections when template is provided', async () => {
+      mocks.createCampaignEmail.mockResolvedValue({
+        campaignId: 13,
+        messageId: 23,
+        templateId: 33,
+        dynamicSetId: 43,
+      });
+
+      const result = await handlers['rule_create_campaign_email']({
+        name: 'Template Campaign',
+        subject: 'Hello!',
+        template: { body: [] },
+        sections: [{ type: 'heading', text: 'Ignored' }],
+        sendout_type: 'marketing',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const call = mocks.createCampaignEmail.mock.calls[0][0];
+      expect(call.template).toEqual({ body: [] });
+      expect(call.sections).toBeUndefined();
+    });
+
     it('returns error when neither template nor brand_style_id provided', async () => {
       const result = await handlers['rule_create_campaign_email']({
         name: 'Bad Campaign',

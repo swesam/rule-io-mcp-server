@@ -89,6 +89,66 @@ describe('automation tools', () => {
       );
     });
 
+    it('creates automation email with brand_style_id and sections', async () => {
+      mocks.getTagIdByName.mockResolvedValue(10);
+      mocks.createAutomationEmail.mockResolvedValue({
+        automationId: 102,
+        automailId: 102,
+        messageId: 202,
+        templateId: 302,
+        dynamicSetId: 402,
+      });
+
+      const result = await handlers['rule_create_automation_email']({
+        name: 'Welcome Branded',
+        trigger_tag: 'welcome',
+        subject: 'Welcome!',
+        brand_style_id: 42,
+        sections: [
+          { type: 'heading', text: 'Welcome!' },
+          { type: 'text', text: 'Thanks for joining' },
+          { type: 'button', text: 'Get Started', url: 'https://example.com/start' },
+        ],
+        sendout_type: 'transactional',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const call = mocks.createAutomationEmail.mock.calls[0][0];
+      expect(call.brandStyleId).toBe(42);
+      expect(call.sections).toHaveLength(1);
+      expect(call.sections[0].tagName).toBe('rc-section');
+      expect(call.sections[0].children[0].tagName).toBe('rc-column');
+      expect(call.sections[0].children[0].children).toHaveLength(3);
+      expect(call.sections[0].children[0].children[0].tagName).toBe('rc-heading');
+      expect(call.sections[0].children[0].children[1].tagName).toBe('rc-text');
+      expect(call.sections[0].children[0].children[2].tagName).toBe('rc-button');
+    });
+
+    it('ignores sections when template is provided', async () => {
+      mocks.getTagIdByName.mockResolvedValue(10);
+      mocks.createAutomationEmail.mockResolvedValue({
+        automationId: 103,
+        automailId: 103,
+        messageId: 203,
+        templateId: 303,
+        dynamicSetId: 403,
+      });
+
+      const result = await handlers['rule_create_automation_email']({
+        name: 'Template Auto',
+        trigger_tag: 'welcome',
+        subject: 'Welcome!',
+        template: { body: [] },
+        sections: [{ type: 'heading', text: 'Ignored' }],
+        sendout_type: 'transactional',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const call = mocks.createAutomationEmail.mock.calls[0][0];
+      expect(call.template).toEqual({ body: [] });
+      expect(call.sections).toBeUndefined();
+    });
+
     it('returns error when neither template nor brand_style_id provided', async () => {
       const result = await handlers['rule_create_automation_email']({
         name: 'Welcome Email',
