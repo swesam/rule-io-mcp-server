@@ -70,7 +70,7 @@ export const sectionsSchema = z
   .array(contentBlockSchema)
   .min(1)
   .describe(
-    'Email body content blocks rendered top-to-bottom. Supported types: heading (optional level h1/h2/h3), text, button (requires url), image (requires src), divider, spacer.'
+    'Optional email body content blocks rendered top-to-bottom. If omitted with brand_style_id, the brand style generates a default layout. Supported types: heading (optional level h1/h2/h3), text, button (requires url), image (requires src), divider, spacer.'
   );
 
 // ---------------------------------------------------------------------------
