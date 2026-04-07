@@ -45,6 +45,7 @@ const EXPECTED_TOOLS = [
   'rule_delete_automation',
   // admin
   'rule_list_brand_styles',
+  'rule_get_brand_style',
   'rule_manage_brand_style',
   'rule_suppress_subscribers',
   'rule_unsuppress_subscribers',
@@ -94,7 +95,7 @@ describe('createServer', () => {
     expect(server).toBeDefined();
   });
 
-  it('registers all 34 expected tools', () => {
+  it('registers all 35 expected tools', () => {
     createServer({
       apiKey: 'test-key',
       debug: false,

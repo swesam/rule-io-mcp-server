@@ -2,12 +2,13 @@ import { z } from 'zod';
 import {
   createSection,
   createColumn,
-  createHeading,
-  createText,
-  createButton,
   createImage,
   createDivider,
   createSpacer,
+  createProseMirrorDoc,
+  createBrandHeading,
+  createBrandText,
+  createBrandButton,
   type RCMLSection,
   type RCMLColumnChild,
 } from 'rule-io-sdk';
@@ -77,23 +78,30 @@ export const sectionsSchema = z
 // RCML builder — converts content blocks to valid RCML sections
 // ---------------------------------------------------------------------------
 
-const HEADING_FONT_SIZE: Record<string, string> = {
-  h1: '28px',
-  h2: '22px',
-  h3: '18px',
+const HEADING_LEVEL: Record<string, 1 | 2 | 3> = {
+  h1: 1,
+  h2: 2,
+  h3: 3,
 };
 
 function blockToElement(block: ContentBlock): RCMLColumnChild {
   switch (block.type) {
     case 'heading':
-      return createHeading(block.text, {
-        align: block.align,
-        fontSize: HEADING_FONT_SIZE[block.level ?? 'h1'],
-      });
-    case 'text':
-      return createText(block.text, { align: block.align });
+      return createBrandHeading(
+        createProseMirrorDoc(block.text),
+        HEADING_LEVEL[block.level ?? 'h1']
+      ) as RCMLColumnChild;
+    case 'text': {
+      const align = block.align === 'justify' ? undefined : block.align;
+      return createBrandText(createProseMirrorDoc(block.text), {
+        align,
+      }) as RCMLColumnChild;
+    }
     case 'button':
-      return createButton(block.text, block.url, { align: block.align });
+      return createBrandButton(
+        createProseMirrorDoc(block.text),
+        block.url
+      ) as RCMLColumnChild;
     case 'image':
       return createImage(block.src, { alt: block.alt, href: block.href });
     case 'divider':
