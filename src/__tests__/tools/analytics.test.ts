@@ -43,10 +43,69 @@ describe('analytics tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(analytics);
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+        }),
+      );
+    });
+
+    it('returns per-object analytics with full query params', async () => {
+      const analytics = {
+        data: [
+          { id: '910092', metrics: [{ metric: 'open', value: 150 }, { metric: 'click', value: 42 }] },
+        ],
+      };
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['910092'],
+        metrics: ['open', 'click'],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(analytics);
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          object_type: 'CAMPAIGN',
+          object_ids: ['910092'],
+          metrics: ['open', 'click'],
+        }),
+      );
+    });
+
+    it('passes message_type when provided', async () => {
+      mocks.getAnalytics.mockResolvedValue({ data: [] });
+
+      await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        message_type: 'email',
+      });
+
       expect(mocks.getAnalytics).toHaveBeenCalledWith({
         date_from: '2025-01-01',
         date_to: '2025-01-31',
+        message_type: 'email',
       });
+    });
+
+    it('returns error when only a subset of grouped params is provided', async () => {
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('must all be provided together');
+      expect(mocks.getAnalytics).not.toHaveBeenCalled();
     });
 
     it('returns error on API failure', async () => {
