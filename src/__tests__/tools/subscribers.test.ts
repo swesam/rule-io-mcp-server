@@ -14,6 +14,9 @@ interface MockClient {
   removeSubscriberTagV3: ReturnType<typeof vi.fn>;
   bulkAddTags: ReturnType<typeof vi.fn>;
   bulkRemoveTags: ReturnType<typeof vi.fn>;
+  blockSubscribers: ReturnType<typeof vi.fn>;
+  unblockSubscribers: ReturnType<typeof vi.fn>;
+  createCustomFieldData: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
@@ -28,6 +31,9 @@ function createMockClient(): MockClient {
     removeSubscriberTagV3: vi.fn(),
     bulkAddTags: vi.fn(),
     bulkRemoveTags: vi.fn(),
+    blockSubscribers: vi.fn(),
+    unblockSubscribers: vi.fn(),
+    createCustomFieldData: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -198,6 +204,88 @@ describe('subscriber tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(mocks.bulkRemoveTags).toHaveBeenCalled();
+    });
+  });
+
+  describe('rule_set_subscriber_fields', () => {
+    it('sets custom field data on a subscriber', async () => {
+      mocks.createCustomFieldData.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_set_subscriber_fields']({
+        subscriber_id: 42,
+        groups: [
+          {
+            group: 'Order',
+            values: [
+              { field: 'OrderNumber', value: 'ORD-123' },
+              { field: 'Status', value: 'confirmed' },
+            ],
+          },
+        ],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.createCustomFieldData).toHaveBeenCalledWith(42, {
+        groups: [
+          {
+            group: 'Order',
+            create_if_not_exists: true,
+            historical: undefined,
+            values: [
+              { field: 'OrderNumber', create_if_not_exists: true, value: 'ORD-123' },
+              { field: 'Status', create_if_not_exists: true, value: 'confirmed' },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('handles API error', async () => {
+      mocks.createCustomFieldData.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_set_subscriber_fields']({
+        subscriber_id: 42,
+        groups: [{ group: 'Order', values: [{ field: 'Ref', value: 'X' }] }],
+      });
+
+      expect(result.isError).toBe(true);
+    });
+  });
+
+  describe('rule_block_subscribers', () => {
+    it('blocks subscribers', async () => {
+      mocks.blockSubscribers.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_block_subscribers']({
+        action: 'block',
+        subscribers: [{ email: 'spam@example.com' }],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.blockSubscribers).toHaveBeenCalledWith([{ email: 'spam@example.com' }]);
+    });
+
+    it('unblocks subscribers', async () => {
+      mocks.unblockSubscribers.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_block_subscribers']({
+        action: 'unblock',
+        subscribers: [{ email: 'restored@example.com' }],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.unblockSubscribers).toHaveBeenCalledWith([{ email: 'restored@example.com' }]);
+    });
+
+    it('handles API error', async () => {
+      mocks.blockSubscribers.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_block_subscribers']({
+        action: 'block',
+        subscribers: [{ email: 'test@example.com' }],
+      });
+
+      expect(result.isError).toBe(true);
     });
   });
 });

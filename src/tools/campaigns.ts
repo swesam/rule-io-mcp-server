@@ -91,6 +91,189 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
   );
 
   server.tool(
+    'rule_create_campaign_email',
+    'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
+    {
+      name: z.string().describe('Campaign name (shown in Rule.io dashboard)'),
+      subject: z.string().describe('Email subject line'),
+      template: z
+        .record(z.any())
+        .optional()
+        .describe(
+          'RCML document object for the email template content. Provide this OR brand_style_id, not both.'
+        ),
+      brand_style_id: z
+        .number()
+        .optional()
+        .describe(
+          'Brand style ID to auto-generate an editor-compatible RCML template. Use rule_list_brand_styles to find available styles. Provide this OR template, not both.'
+        ),
+      sections: z
+        .array(z.record(z.any()))
+        .optional()
+        .describe(
+          'RCML body sections to include when using brand_style_id. Array of section/loop/switch objects.'
+        ),
+      tags: z
+        .array(
+          z.object({
+            id: z.number().describe('Tag ID'),
+            negative: z
+              .boolean()
+              .optional()
+              .default(false)
+              .describe('If true, excludes subscribers with this tag'),
+          })
+        )
+        .optional()
+        .describe(
+          'Tags to target as recipients. Use rule_list_tags to find tag IDs.'
+        ),
+      segments: z
+        .array(
+          z.object({
+            id: z.number().describe('Segment ID'),
+            negative: z
+              .boolean()
+              .optional()
+              .default(false)
+              .describe('If true, excludes subscribers in this segment'),
+          })
+        )
+        .optional()
+        .describe(
+          'Segments to target as recipients. Use rule_list_segments to find segment IDs.'
+        ),
+      subscribers: z
+        .array(z.number())
+        .optional()
+        .describe('Specific subscriber IDs to target'),
+      preheader: z.string().optional().describe('Preview text shown in email inbox'),
+      from_name: z.string().optional().describe('Sender display name'),
+      from_email: z.string().optional().describe('Sender email address'),
+      reply_to: z.string().optional().describe('Reply-to email address'),
+      sendout_type: z
+        .enum(['marketing', 'transactional'])
+        .optional()
+        .default('marketing')
+        .describe(
+          'Email type: "marketing" for campaigns/newsletters (default), "transactional" for order confirmations etc.'
+        ),
+    },
+    async ({
+      name,
+      subject,
+      template,
+      brand_style_id,
+      sections,
+      tags,
+      segments,
+      subscribers,
+      preheader,
+      from_name,
+      from_email,
+      reply_to,
+      sendout_type,
+    }) => {
+      try {
+        if (!template && !brand_style_id) {
+          return errorResult(
+            'Provide either "template" (RCML document) or "brand_style_id" to generate a template.'
+          );
+        }
+        if (template && brand_style_id) {
+          return errorResult(
+            'Provide either "template" or "brand_style_id", not both.'
+          );
+        }
+
+        const config: Parameters<typeof client.createCampaignEmail>[0] = {
+          name,
+          subject,
+          preheader,
+          fromName: from_name,
+          fromEmail: from_email,
+          replyTo: reply_to,
+          sendoutType: sendout_type === 'transactional' ? 2 : 1,
+          tags,
+          segments,
+          subscribers,
+        };
+
+        if (template) {
+          config.template = template as Parameters<typeof client.createCampaignEmail>[0]['template'];
+        } else {
+          config.brandStyleId = brand_style_id;
+          if (sections) {
+            config.sections = sections as Parameters<typeof client.createCampaignEmail>[0]['sections'];
+          }
+        }
+
+        const result = await client.createCampaignEmail(config);
+
+        return jsonResult({
+          success: true,
+          campaign_id: result.campaignId,
+          message_id: result.messageId,
+          template_id: result.templateId,
+          dynamic_set_id: result.dynamicSetId,
+        });
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_delete_campaign',
+    'Delete a campaign by ID. This permanently removes the campaign.',
+    {
+      id: z.number().describe('Campaign ID to delete'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await client.deleteCampaign(id);
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_copy_campaign',
+    'Duplicate an existing campaign. Returns the new campaign copy with a new ID.',
+    {
+      id: z.number().describe('Campaign ID to copy'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await client.copyCampaign(id);
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_list_segments',
+    'List available segments for campaign targeting. Segments are predefined subscriber groups based on filters/rules.',
+    {
+      page: z.number().optional().default(1).describe('Page number (default: 1)'),
+      per_page: z.number().optional().default(25).describe('Results per page (default: 25)'),
+    },
+    async ({ page, per_page }) => {
+      try {
+        const result = await client.listSegments({ page, per_page });
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
     'rule_schedule_campaign',
     'Schedule, send immediately, or cancel scheduling for a campaign. Use "send_now" to send immediately, "schedule" to send at a specific time, or "cancel" to cancel a scheduled send.',
     {

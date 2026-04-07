@@ -51,16 +51,16 @@ export function registerResources(server: McpServer, client: RuleClient): void {
   });
 
   server.resource(
-    'automail',
-    new ResourceTemplate('rule://automails/{id}', { list: undefined }),
+    'automation',
+    new ResourceTemplate('rule://automations/{id}', { list: undefined }),
     async (uri, { id }) => {
       try {
         const numId = parseId(id);
         if (numId === null) {
-          return resourceError(uri.href, `Invalid automail ID: "${id}"`);
+          return resourceError(uri.href, `Invalid automation ID: "${id}"`);
         }
-        const automail = await client.getAutomail(numId);
-        return resourceContent(uri.href, automail ?? { error: 'Not found' });
+        const automation = await client.getAutomation(numId);
+        return resourceContent(uri.href, automation ?? { error: 'Not found' });
       } catch (error) {
         return resourceError(uri.href, error);
       }
@@ -83,6 +83,32 @@ export function registerResources(server: McpServer, client: RuleClient): void {
       }
     }
   );
+
+  server.resource(
+    'template',
+    new ResourceTemplate('rule://templates/{id}', { list: undefined }),
+    async (uri, { id }) => {
+      try {
+        const numId = parseId(id);
+        if (numId === null) {
+          return resourceError(uri.href, `Invalid template ID: "${id}"`);
+        }
+        const template = await client.getTemplate(numId);
+        return resourceContent(uri.href, template ?? { error: 'Not found' });
+      } catch (error) {
+        return resourceError(uri.href, error);
+      }
+    }
+  );
+
+  server.resource('segments', 'rule://segments', async (uri) => {
+    try {
+      const response = await client.listSegments();
+      return resourceContent(uri.href, response);
+    } catch (error) {
+      return resourceError(uri.href, error);
+    }
+  });
 
   server.resource(
     'brand-style',

@@ -6,7 +6,7 @@ import { handleRuleError, jsonResult, textResult, errorResult } from '../util/er
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_automation_email',
-    'Create a complete email automation in one step. This sets up an automail, message, template, and dynamic set — equivalent to 4 separate API calls. Provide a trigger tag name, email subject, and RCML template document. If any step fails, previously created resources are automatically cleaned up.',
+    'Create a complete email automation in one step. This sets up an automation, message, template, and dynamic set — equivalent to 4 separate API calls. Provide a trigger tag name, email subject, and either an RCML template document OR a brand_style_id to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
     {
       name: z.string().describe('Automation name (shown in Rule.io dashboard)'),
       trigger_tag: z
@@ -17,7 +17,22 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
       subject: z.string().describe('Email subject line'),
       template: z
         .record(z.any())
-        .describe('RCML document object for the email template content'),
+        .optional()
+        .describe(
+          'RCML document object for the email template content. Provide this OR brand_style_id, not both.'
+        ),
+      brand_style_id: z
+        .number()
+        .optional()
+        .describe(
+          'Brand style ID to auto-generate an editor-compatible RCML template. Use rule_list_brand_styles to find available styles. Provide this OR template, not both.'
+        ),
+      sections: z
+        .array(z.record(z.any()))
+        .optional()
+        .describe(
+          'RCML body sections to include when using brand_style_id. Array of section/loop/switch objects.'
+        ),
       description: z.string().optional().describe('Description of this automation'),
       preheader: z.string().optional().describe('Preview text shown in email inbox'),
       from_name: z.string().optional().describe('Sender display name'),
@@ -36,6 +51,8 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
       trigger_tag,
       subject,
       template,
+      brand_style_id,
+      sections,
       description,
       preheader,
       from_name,
@@ -44,6 +61,17 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
       sendout_type,
     }) => {
       try {
+        if (!template && !brand_style_id) {
+          return errorResult(
+            'Provide either "template" (RCML document) or "brand_style_id" to generate a template.'
+          );
+        }
+        if (template && brand_style_id) {
+          return errorResult(
+            'Provide either "template" or "brand_style_id", not both.'
+          );
+        }
+
         // Resolve tag name to ID
         const tagId = await client.getTagIdByName(trigger_tag);
         if (tagId === null) {
@@ -52,7 +80,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
           );
         }
 
-        const result = await client.createAutomationEmail({
+        const config: Parameters<typeof client.createAutomationEmail>[0] = {
           name,
           description,
           triggerType: 'tag',
@@ -63,12 +91,22 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
           fromEmail: from_email,
           replyTo: reply_to,
           sendoutType: sendout_type === 'marketing' ? 1 : 2,
-          template: template as Parameters<typeof client.createAutomationEmail>[0]['template'],
-        });
+        };
+
+        if (template) {
+          config.template = template as Parameters<typeof client.createAutomationEmail>[0]['template'];
+        } else {
+          config.brandStyleId = brand_style_id;
+          if (sections) {
+            config.sections = sections as Parameters<typeof client.createAutomationEmail>[0]['sections'];
+          }
+        }
+
+        const result = await client.createAutomationEmail(config);
 
         return jsonResult({
           success: true,
-          automail_id: result.automailId,
+          automation_id: result.automationId,
           message_id: result.messageId,
           template_id: result.templateId,
           dynamic_set_id: result.dynamicSetId,
@@ -80,7 +118,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
   );
 
   server.tool(
-    'rule_list_automails',
+    'rule_list_automations',
     'List email automations in your Rule.io account. Returns automation name, status, and trigger info.',
     {
       active: z
@@ -93,7 +131,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
     },
     async ({ active, query, page, per_page }) => {
       try {
-        const result = await client.listAutomails({
+        const result = await client.listAutomations({
           active,
           query,
           page,
@@ -107,16 +145,16 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
   );
 
   server.tool(
-    'rule_get_automail',
+    'rule_get_automation',
     'Get detailed information about a specific automation by ID. Returns trigger, message, and status information.',
     {
-      id: z.number().describe('Automail ID'),
+      id: z.number().describe('Automation ID'),
     },
     async ({ id }) => {
       try {
-        const result = await client.getAutomail(id);
+        const result = await client.getAutomation(id);
         if (!result) {
-          return textResult(`Automail ${id} not found.`);
+          return textResult(`Automation ${id} not found.`);
         }
         return jsonResult(result);
       } catch (error) {
@@ -126,10 +164,10 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
   );
 
   server.tool(
-    'rule_update_automail',
+    'rule_update_automation',
     'Update an existing automation. Can change its active status, trigger, or sendout type.',
     {
-      id: z.number().describe('Automail ID to update'),
+      id: z.number().describe('Automation ID to update'),
       active: z.boolean().optional().describe('Set automation active (true) or paused (false)'),
       sendout_type: z
         .enum(['marketing', 'transactional'])
@@ -156,7 +194,23 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
           update.trigger = { type: trigger_type!.toUpperCase(), id: trigger_id };
         }
 
-        const result = await client.updateAutomail(id, update);
+        const result = await client.updateAutomation(id, update);
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_delete_automation',
+    'Delete an automation by ID. This permanently removes the automation and stops any future triggers.',
+    {
+      id: z.number().describe('Automation ID to delete'),
+    },
+    async ({ id }) => {
+      try {
+        const result = await client.deleteAutomation(id);
         return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);

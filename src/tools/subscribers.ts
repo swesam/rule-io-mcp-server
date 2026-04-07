@@ -163,4 +163,91 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
       }
     }
   );
+
+  server.tool(
+    'rule_set_subscriber_fields',
+    'Set custom field data on a subscriber. Fields are organized into groups (e.g. "Order", "Booking"). Groups and fields are created automatically if they don\'t exist. Use rule_get_subscriber to see existing fields first.',
+    {
+      subscriber_id: z.number().describe('Subscriber numeric ID (get this from rule_get_subscriber)'),
+      groups: z
+        .array(
+          z.object({
+            group: z
+              .union([z.string(), z.number()])
+              .describe('Field group name (e.g. "Order", "Booking") or group ID'),
+            values: z
+              .array(
+                z.object({
+                  field: z
+                    .union([z.string(), z.number()])
+                    .describe('Field name (e.g. "OrderNumber", "Status") or field ID'),
+                  value: z
+                    .union([z.string(), z.array(z.string()), z.record(z.unknown())])
+                    .describe('Field value — string, string array, or JSON object'),
+                })
+              )
+              .describe('Field values to set in this group'),
+            historical: z
+              .boolean()
+              .optional()
+              .describe('If true, creates a new historical record instead of updating existing'),
+          })
+        )
+        .describe('Field groups and their values to set'),
+    },
+    async ({ subscriber_id, groups }) => {
+      try {
+        const result = await client.createCustomFieldData(subscriber_id, {
+          groups: groups.map((g) => ({
+            group: g.group,
+            create_if_not_exists: true,
+            historical: g.historical,
+            values: g.values.map((v) => ({
+              field: v.field,
+              create_if_not_exists: true,
+              value: v.value,
+            })),
+          })),
+        });
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_block_subscribers',
+    'Block or unblock multiple subscribers. Blocking prevents emails from being sent to these subscribers. This is an async operation processed in the background by Rule.io.',
+    {
+      action: z
+        .enum(['block', 'unblock'])
+        .describe('"block" to block subscribers, "unblock" to unblock them'),
+      subscribers: z
+        .array(
+          z
+            .object({
+              email: z.string().email().optional().describe('Subscriber email'),
+              phone_number: z.string().optional().describe('Subscriber phone number'),
+              id: z.number().optional().describe('Subscriber ID'),
+            })
+            .refine(
+              ({ email, phone_number, id }) => Boolean(email || phone_number || id),
+              'Each subscriber must include at least one of email, phone_number, or id'
+            )
+        )
+        .describe('Subscribers to block or unblock'),
+    },
+    async ({ action, subscribers }) => {
+      try {
+        const result =
+          action === 'block'
+            ? await client.blockSubscribers(subscribers)
+            : await client.unblockSubscribers(subscribers);
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
 }

@@ -23,19 +23,26 @@ const EXPECTED_TOOLS = [
   'rule_find_tag',
   // campaigns
   'rule_create_campaign',
+  'rule_create_campaign_email',
   'rule_list_campaigns',
   'rule_get_campaign',
   'rule_update_campaign',
+  'rule_delete_campaign',
+  'rule_copy_campaign',
+  'rule_list_segments',
   'rule_schedule_campaign',
   // templates
   'rule_create_template',
   'rule_list_templates',
   'rule_render_template',
+  'rule_get_template',
+  'rule_delete_template',
   // automations
   'rule_create_automation_email',
-  'rule_list_automails',
-  'rule_get_automail',
-  'rule_update_automail',
+  'rule_list_automations',
+  'rule_get_automation',
+  'rule_update_automation',
+  'rule_delete_automation',
   // admin
   'rule_list_brand_styles',
   'rule_manage_brand_style',
@@ -50,6 +57,8 @@ const EXPECTED_TOOLS = [
   'rule_delete_subscriber',
   'rule_manage_subscriber_tags',
   'rule_bulk_manage_tags',
+  'rule_set_subscriber_fields',
+  'rule_block_subscribers',
 ] as const;
 
 describe('createServer', () => {
@@ -85,7 +94,7 @@ describe('createServer', () => {
     expect(server).toBeDefined();
   });
 
-  it('registers all 25 expected tools', () => {
+  it('registers all 34 expected tools', () => {
     createServer({
       apiKey: 'test-key',
       debug: false,

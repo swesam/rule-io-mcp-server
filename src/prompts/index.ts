@@ -438,7 +438,7 @@ Recommended email automations for Shopify:
 4. **Order Cancellation** - Use \`create_order_cancellation_email\` prompt
 
 ### Step 4: Test your setup
-1. Use \`rule_list_automails\` to verify your automations were created
+1. Use \`rule_list_automations\` to verify your automations were created
 2. Place a test order in Shopify
 3. Check that the subscriber receives the triggered email
 4. Use \`rule_render_template\` with a template ID and subscriber ID to preview with real data (get the template ID from \`rule_create_automation_email\`'s response or \`rule_list_templates\`)
@@ -483,7 +483,7 @@ Recommended email automations for hospitality:
 3. **Post-Stay Feedback** - Use \`create_feedback_request_email\` prompt
 
 ### Step 4: Test your setup
-1. Use \`rule_list_automails\` to verify your automations were created
+1. Use \`rule_list_automations\` to verify your automations were created
 2. Create a test reservation in Bookzen
 3. Check that the guest subscriber receives the triggered email
 4. Use \`rule_render_template\` with a template ID and subscriber ID to preview with real data (get the template ID from \`rule_create_automation_email\`'s response or \`rule_list_templates\`)
