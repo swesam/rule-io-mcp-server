@@ -157,13 +157,13 @@ Then verify:
 
 > **Prompt:** "Block the subscriber qa-test@example.com from receiving any emails"
 
-**What to look for:** `rule_block_subscribers` with action `block` and the subscriber email.
+**What to look for:** `rule_block_subscribers` with `action: "block"` and `subscribers: [{ email: "qa-test@example.com" }]`.
 
 Then:
 
 > **Prompt:** "Unblock qa-test@example.com"
 
-**What to look for:** `rule_block_subscribers` with action `unblock`.
+**What to look for:** `rule_block_subscribers` with `action: "unblock"` and `subscribers: [{ email: "qa-test@example.com" }]`.
 
 ---
 
