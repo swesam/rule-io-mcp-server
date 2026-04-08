@@ -7,7 +7,7 @@ import { subscriberUrl } from '../util/urls.js';
 export function registerSubscriberTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_subscriber',
-    'Create a new subscriber in Rule.io. Provide an email and optionally a phone number, language, and status. To add tags after creation, use rule_manage_subscriber_tags.',
+    'Create a new subscriber in Rule.io. Provide an email and optionally a phone number, language, and status. To add tags after creation, use rule_manage_subscriber_tags. Always show the dashboard link from the response to the user.',
     {
       email: z.string().email().describe('Subscriber email address'),
       phone_number: z.string().optional().describe('Phone number (E.164 format preferred)'),
@@ -26,10 +26,7 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
           status,
         });
         const id = result.id;
-        return jsonResult({
-          ...result,
-          ...(id ? { dashboard_url: subscriberUrl(id) } : {}),
-        });
+        return jsonResult(result, id ? subscriberUrl(id) : undefined);
       } catch (error) {
         return handleRuleError(error);
       }

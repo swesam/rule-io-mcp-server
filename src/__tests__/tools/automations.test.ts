@@ -55,15 +55,12 @@ describe('automation tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = JSON.parse(result.content[0].text);
-      expect(parsed).toEqual({
-        success: true,
-        automation_id: 100,
-        message_id: 200,
-        template_id: 300,
-        dynamic_set_id: 400,
-        dashboard_url: 'https://app.rule.io/v5/#/app/automations/automail/100/v6/email/200/edit',
-      });
+      const text = result.content[0].text;
+      expect(text).toContain(
+        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/automations/automail/100/v6/email/200/edit'
+      );
+      expect(text).toContain('"automation_id": 100');
+      expect(text).toContain('"template_id": 300');
     });
 
     it('creates automation email with brand_style_id', async () => {

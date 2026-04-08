@@ -8,7 +8,7 @@ import { campaignUrl } from '../util/urls.js';
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_campaign',
-    'Create a new one-off email campaign. Campaigns are for sending to a list/segment at a specific time, unlike automations which trigger on subscriber actions.',
+    'Create a new one-off email campaign. Campaigns are for sending to a list/segment at a specific time, unlike automations which trigger on subscriber actions. Always show the dashboard link from the response to the user.',
     {
       name: z.string().optional().describe('Campaign name (shown in Rule.io dashboard)'),
       sendout_type: z
@@ -25,10 +25,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           sendout_type: sendout_type === 'transactional' ? 2 : 1,
         });
         const id = result.data?.id;
-        return jsonResult({
-          ...result,
-          ...(id ? { dashboard_url: campaignUrl(id) } : {}),
-        });
+        return jsonResult(result, id ? campaignUrl(id) : undefined);
       } catch (error) {
         return handleRuleError(error);
       }
@@ -98,7 +95,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_create_campaign_email',
-    'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new campaign. Do not retry on timeout without first checking rule_list_campaigns for duplicates. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
+    'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new campaign. Do not retry on timeout without first checking rule_list_campaigns for duplicates. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up. Always show the dashboard link from the response to the user.',
     {
       name: z.string().describe('Campaign name (shown in Rule.io dashboard)'),
       subject: z.string().describe('Email subject line'),
@@ -221,14 +218,14 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
         const result = await client.createCampaignEmail(config);
 
+        const url = campaignUrl(result.campaignId);
         return jsonResult({
           success: true,
           campaign_id: result.campaignId,
           message_id: result.messageId,
           template_id: result.templateId,
           dynamic_set_id: result.dynamicSetId,
-          dashboard_url: campaignUrl(result.campaignId),
-        });
+        }, url);
       } catch (error) {
         return handleRuleError(error);
       }

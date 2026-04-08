@@ -57,12 +57,12 @@ describe('subscriber tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = JSON.parse(result.content[0].text);
-      expect(parsed.id).toBe(375665);
-      expect(parsed.email).toBe('test@example.com');
-      expect(parsed.dashboard_url).toBe(
-        'https://app.rule.io/v5/#/app/subscribers/item/375665/'
+      const text = result.content[0].text;
+      expect(text).toContain(
+        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/subscribers/item/375665/'
       );
+      expect(text).toContain('"id": 375665');
+      expect(text).toContain('"email": "test@example.com"');
       expect(mocks.createSubscriberV3).toHaveBeenCalledWith({
         email: 'test@example.com',
         phone_number: undefined,

@@ -8,7 +8,7 @@ import { automationUrl } from '../util/urls.js';
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_automation_email',
-    'Create a complete email automation in one step. This sets up an automation, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new automation. Do not retry on timeout without first checking rule_list_automations for duplicates. Provide a trigger tag name, email subject, and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
+    'Create a complete email automation in one step. This sets up an automation, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new automation. Do not retry on timeout without first checking rule_list_automations for duplicates. Provide a trigger tag name, email subject, and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up. Always show the dashboard link from the response to the user.',
     {
       name: z.string().describe('Automation name (shown in Rule.io dashboard)'),
       trigger_tag: z
@@ -101,14 +101,14 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
 
         const result = await client.createAutomationEmail(config);
 
+        const url = automationUrl(result.automationId, result.messageId);
         return jsonResult({
           success: true,
           automation_id: result.automationId,
           message_id: result.messageId,
           template_id: result.templateId,
           dynamic_set_id: result.dynamicSetId,
-          dashboard_url: automationUrl(result.automationId, result.messageId),
-        });
+        }, url);
       } catch (error) {
         return handleRuleError(error);
       }

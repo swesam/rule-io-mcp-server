@@ -52,11 +52,11 @@ describe('campaign tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = JSON.parse(result.content[0].text);
-      expect(parsed.data).toEqual(campaign.data);
-      expect(parsed.dashboard_url).toBe(
-        'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/1/details'
+      const text = result.content[0].text;
+      expect(text).toContain(
+        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/campaigns/v6/email/edit/1/details'
       );
+      expect(text).toContain('"id": 1');
       expect(mocks.createCampaign).toHaveBeenCalledWith({
         name: 'Summer Sale',
         message_type: 1,
@@ -169,15 +169,12 @@ describe('campaign tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = JSON.parse(result.content[0].text);
-      expect(parsed).toEqual({
-        success: true,
-        campaign_id: 10,
-        message_id: 20,
-        template_id: 30,
-        dynamic_set_id: 40,
-        dashboard_url: 'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/10/details',
-      });
+      const text = result.content[0].text;
+      expect(text).toContain(
+        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/campaigns/v6/email/edit/10/details'
+      );
+      expect(text).toContain('"campaign_id": 10');
+      expect(text).toContain('"template_id": 30');
     });
 
     it('creates campaign email with brand_style_id', async () => {
