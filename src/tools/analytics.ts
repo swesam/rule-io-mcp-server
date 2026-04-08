@@ -104,10 +104,10 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
       type: z
         .enum(['dispatchers', 'statistics', 'subscribers'])
         .describe('Type of data to export'),
-      date_from: z.string().describe('Start date (YYYY-MM-DD). Time 00:00:00 is added automatically.'),
+      date_from: z.string().describe('Start date — YYYY-MM-DD (auto-expanded to 00:00:00) or YYYY-MM-DD HH:mm:ss'),
       date_to: z
         .string()
-        .describe('End date (YYYY-MM-DD). Time 23:59:59 is added automatically. For dispatchers, max 1-day range.'),
+        .describe('End date — YYYY-MM-DD (auto-expanded to 23:59:59) or YYYY-MM-DD HH:mm:ss. For dispatchers, max 1-day range.'),
       next_page_token: z
         .string()
         .optional()
