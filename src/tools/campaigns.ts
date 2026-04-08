@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { campaignUrl } from '../util/urls.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -23,7 +24,11 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           message_type: 1, // email
           sendout_type: sendout_type === 'transactional' ? 2 : 1,
         });
-        return jsonResult(result);
+        const id = result.data?.id;
+        return jsonResult({
+          ...result,
+          ...(id ? { dashboard_url: campaignUrl(id) } : {}),
+        });
       } catch (error) {
         return handleRuleError(error);
       }
@@ -222,6 +227,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           message_id: result.messageId,
           template_id: result.templateId,
           dynamic_set_id: result.dynamicSetId,
+          dashboard_url: campaignUrl(result.campaignId),
         });
       } catch (error) {
         return handleRuleError(error);
