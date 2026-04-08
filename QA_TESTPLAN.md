@@ -105,39 +105,113 @@ Test one of the built-in prompts:
 
 ---
 
+## Step 13: Bulk Tag Operations
+First, make sure you have at least two test subscribers (create qa-test@example.com and qa-test2@example.com if needed).
+
+> **Prompt:** "Add the tags 'qa-bulk-1' and 'qa-bulk-2' to these subscribers at once: qa-test@example.com and qa-test2@example.com"
+
+**What to look for:** `rule_bulk_manage_tags` with action `add`, an array of two tag names, and an array of two subscriber identifiers (each with `email`).
+
+Then:
+
+> **Prompt:** "Remove the tag 'qa-bulk-1' from qa-test@example.com and qa-test2@example.com in bulk"
+
+**What to look for:** `rule_bulk_manage_tags` with action `remove`.
+
 ---
 
-## Bugs Found
+## Step 14: Suppress / Unsuppress
 
-### BUG-1: `rule_list_tags` returns empty array (FIXED — PR #25)
-- **Tool:** `rule_list_tags`
-- **Issue:** Reads `response.data` but SDK returns `response.tags`
-- **Test gap:** Mock used same wrong property, masking the bug
-- **Fix:** `fix/list-tags-response-property` branch, PR #25
+> **Prompt:** "Suppress qa-test@example.com from receiving emails"
 
-### BUG-2: `rule_create_campaign_email` allows zero recipients
-- **Tool:** `rule_create_campaign_email`
-- **Issue:** `tags`, `segments`, and `subscribers` are all optional with no validation that at least one is provided. Campaign is created but can never send.
-- **LLM side-effect:** Claude hallucinated "targeting all subscribers" when actually zero were selected.
-- **Suggested fix:** Either require at least one recipient param, or return a warning in the response when none are set.
+**What to look for:** `rule_suppress_subscribers` called with `subscribers: [{ email: "qa-test@example.com" }]`.
 
-### BUG-3: `rule_get_analytics` description misleads LLM — summary mode never used
-- **Tool:** `rule_get_analytics`
-- **Issue:** LLM repeatedly refuses to call the summary mode (date range only, no object IDs), insisting "the API requires specific object IDs." Tested twice — both times it skipped summary and went to per-object queries, failing to find sent campaigns. The code supports summary mode (line 82 of analytics.ts) but the description doesn't make it clear enough.
-- **Suggested fix:** Rewrite description to lead with summary mode as the default: "Call with just date_from and date_to for an account-wide summary. For per-object breakdown, also provide object_type + object_ids + metrics (all three required together). Use rule_list_campaigns or rule_list_automations to find IDs."
+Then:
 
-### BUG-4: Abandoned cart prompt example JSON uses wrong template format
-- **Prompt:** `create_abandoned_cart_email`
-- **Issue:** The example JSON (lines 157-169 of prompts/index.ts) uses a raw `"template"` object with an invented RCML structure (`type: "section"`, `type: "heading"`, etc.) that doesn't match the actual `sections` content-block API. This confuses the LLM into generating its own format instead of using `sections` with proper content blocks.
-- **Side-effect 1:** Merge tags rendered as `[First Name]` instead of `{{Subscriber.FirstName}}` — the LLM ignored the prompt's correct syntax.
-- **Side-effect 2:** Logo broken — the LLM may have tried to include a logo manually instead of relying on the brand style header.
-- **Suggested fix:** Replace the example JSON with a correct `sections`-based example using content blocks (heading, text, button). Also reinforce merge tag syntax in the example.
+> **Prompt:** "Unsuppress qa-test@example.com so they can receive emails again"
 
-### NOTE-1: Broken logo in Claude Desktop template preview (not a bug)
-- **Tool:** `rule_render_template`
-- **Issue:** Logo shows broken image in Claude Desktop's rendered preview, but displays correctly inside Rule.io's UI.
-- **Cause:** Claude Desktop's HTML/markdown renderer doesn't load external images. The template HTML and logo URL (https://img.rule.io/...) are correct.
-- **Action:** None — this is a Claude Desktop rendering limitation, not an MCP server issue.
+**What to look for:** `rule_unsuppress_subscribers` with the same subscriber.
+
+---
+
+## Step 15: Set Custom Fields
+Use the subscriber ID from Step 2 (or look up qa-test@example.com first):
+
+> **Prompt:** "Set custom fields on subscriber [ID]: in the 'Order' group, set OrderNumber to 'ORD-12345' and Status to 'Confirmed'"
+
+**What to look for:** `rule_set_subscriber_fields` with `subscriber_id`, `groups` array containing group name `"Order"` and two field values. Groups and fields should be created automatically.
+
+Then verify:
+
+> **Prompt:** "Look up qa-test@example.com and show me their custom fields"
+
+**What to look for:** `rule_get_subscriber` should show the Order group with the values we just set.
+
+---
+
+## Step 16: Subscriber Blocking
+
+> **Prompt:** "Block the subscriber qa-test@example.com from receiving any emails"
+
+**What to look for:** `rule_block_subscribers` with action `block` and the subscriber email.
+
+Then:
+
+> **Prompt:** "Unblock qa-test@example.com"
+
+**What to look for:** `rule_block_subscribers` with action `unblock`.
+
+---
+
+## Step 17: Export Data
+
+> **Prompt:** "Export my email statistics for the last 7 days"
+
+**What to look for:** `rule_export_data` with type `statistics`, `date_from` and `date_to` set to a 7-day range.
+
+Then:
+
+> **Prompt:** "Export dispatchers for today"
+
+**What to look for:** `rule_export_data` with type `dispatchers` and a single-day date range.
+
+---
+
+## Step 18: E-commerce & Hospitality Prompts
+Test the prompt-guided flows for e-commerce and hospitality:
+
+> **Prompt:** "Help me create an order confirmation email"
+
+**What to look for:** The `create_order_confirmation_email` prompt should activate. Check for correct merge tags (`{{Order.OrderNumber}}`, `{{Order.TotalPrice}}`), a sections-based example with content blocks (heading, text, button), and brand style handling.
+
+Then:
+
+> **Prompt:** "Help me set up a reservation confirmation email"
+
+**What to look for:** The `create_reservation_confirmation_email` prompt should activate. Check for hospitality merge tags (`{{Booking.CheckInDate}}`, `{{Booking.CheckOutDate}}`, `{{Booking.ConfirmationNumber}}`).
+
+---
+
+## Step 19: Integration Setup Prompts
+
+> **Prompt:** "Help me set up Shopify with Rule.io"
+
+**What to look for:** The `setup_shopify_integration` prompt should activate. Should include: expected tags (`shopify_order_created`, `shopify_order_fulfilled`, `shopify_checkout_abandoned`, `shopify_customer_created`), field mapping table, step-by-step setup guide, and testing instructions.
+
+Then:
+
+> **Prompt:** "Help me set up Bookzen with Rule.io"
+
+**What to look for:** The `setup_bookzen_integration` prompt should activate. Should include: expected tags (`bookzen_reservation_created`, `bookzen_checkin_approaching`, `bookzen_checkout_completed`, `bookzen_reservation_cancelled`), booking field mappings, and step-by-step guide.
+
+---
+
+## Step 20: Final Cleanup
+Clean up all test data from the extended testing:
+
+> **Prompt:** "Delete the test subscribers qa-test@example.com and qa-test2@example.com, and remove any tags we created during testing (qa-bulk-1, qa-bulk-2)."
+
+**What to look for:** `rule_delete_subscriber` for each subscriber, `rule_delete_tag` for the test tags.
 
 ---
 
