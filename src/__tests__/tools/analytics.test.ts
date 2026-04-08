@@ -138,6 +138,8 @@ describe('analytics tools', () => {
         date_from: '2025-01-01 00:00:00',
         date_to: '2025-01-01 23:59:59',
       });
+      expect(mocks.exportStatistics).not.toHaveBeenCalled();
+      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
 
     it('exports statistics and normalises date-only strings to datetime', async () => {
@@ -158,6 +160,8 @@ describe('analytics tools', () => {
           date_to: '2025-01-31 23:59:59',
         }),
       );
+      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
+      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
 
     it('exports subscribers and normalises date-only strings to datetime', async () => {
@@ -176,6 +180,8 @@ describe('analytics tools', () => {
         date_from: '2025-01-01 00:00:00',
         date_to: '2025-01-31 23:59:59',
       });
+      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
+      expect(mocks.exportStatistics).not.toHaveBeenCalled();
     });
 
     it('passes through full datetime strings unchanged', async () => {
@@ -193,6 +199,8 @@ describe('analytics tools', () => {
           date_to: '2025-01-31 18:30:00',
         }),
       );
+      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
+      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
   });
 });
