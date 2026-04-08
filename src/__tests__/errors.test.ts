@@ -89,6 +89,18 @@ describe('jsonResult', () => {
       { type: 'text', text: JSON.stringify(data, null, 2) },
     ]);
   });
+
+  it('prepends dashboard URL when provided', () => {
+    const data = { id: 42, name: 'Test Campaign' };
+    const url = 'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/42/details';
+    const result = jsonResult(data, url);
+
+    expect(result.isError).toBeUndefined();
+    const content = result.content[0] as { type: 'text'; text: string };
+    expect(content.text).toContain(`View in the Rule.io dashboard: ${url}`);
+    const jsonText = content.text.split('\n\n').slice(1).join('\n\n');
+    expect(JSON.parse(jsonText)).toEqual(data);
+  });
 });
 
 describe('textResult', () => {
