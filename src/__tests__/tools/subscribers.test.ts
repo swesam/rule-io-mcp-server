@@ -58,11 +58,10 @@ describe('subscriber tools', () => {
 
       expect(result.isError).toBeUndefined();
       const text = result.content[0].text;
-      expect(text).toContain(
-        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/subscribers/item/375665/'
-      );
-      expect(text).toContain('"id": 375665');
-      expect(text).toContain('"email": "test@example.com"');
+      const dashboardUrl = 'https://app.rule.io/v5/#/app/subscribers/item/375665/';
+      expect(text).toContain(`View in the Rule.io dashboard: ${dashboardUrl}`);
+      const jsonText = text.split('\n\n').slice(1).join('\n\n');
+      expect(JSON.parse(jsonText)).toEqual(created);
       expect(mocks.createSubscriberV3).toHaveBeenCalledWith({
         email: 'test@example.com',
         phone_number: undefined,

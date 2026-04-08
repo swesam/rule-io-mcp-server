@@ -26,7 +26,7 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
           status,
         });
         const id = result.id;
-        return jsonResult(result, id ? subscriberUrl(id) : undefined);
+        return jsonResult(result, id != null ? subscriberUrl(id) : undefined);
       } catch (error) {
         return handleRuleError(error);
       }

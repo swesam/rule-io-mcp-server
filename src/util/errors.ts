@@ -67,7 +67,7 @@ export function handleRuleError(error: unknown): CallToolResult {
 export function jsonResult(data: unknown, dashboardUrl?: string): CallToolResult {
   const json = JSON.stringify(data, null, 2);
   const text = dashboardUrl
-    ? `View in Rule.io dashboard: ${dashboardUrl}\n\n${json}`
+    ? `View in the Rule.io dashboard: ${dashboardUrl}\n\n${json}`
     : json;
   return {
     content: [{ type: 'text', text }],

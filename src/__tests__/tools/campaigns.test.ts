@@ -53,10 +53,10 @@ describe('campaign tools', () => {
 
       expect(result.isError).toBeUndefined();
       const text = result.content[0].text;
-      expect(text).toContain(
-        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/campaigns/v6/email/edit/1/details'
-      );
-      expect(text).toContain('"id": 1');
+      const dashboardUrl = 'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/1/details';
+      expect(text).toContain(`View in the Rule.io dashboard: ${dashboardUrl}`);
+      const jsonText = text.split('\n\n').slice(1).join('\n\n');
+      expect(JSON.parse(jsonText)).toEqual(campaign);
       expect(mocks.createCampaign).toHaveBeenCalledWith({
         name: 'Summer Sale',
         message_type: 1,
@@ -170,11 +170,17 @@ describe('campaign tools', () => {
 
       expect(result.isError).toBeUndefined();
       const text = result.content[0].text;
-      expect(text).toContain(
-        'View in Rule.io dashboard: https://app.rule.io/v5/#/app/campaigns/v6/email/edit/10/details'
-      );
-      expect(text).toContain('"campaign_id": 10');
-      expect(text).toContain('"template_id": 30');
+      const dashboardUrl = 'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/10/details';
+      expect(text).toContain(`View in the Rule.io dashboard: ${dashboardUrl}`);
+      const jsonText = text.split('\n\n').slice(1).join('\n\n');
+      const parsed = JSON.parse(jsonText);
+      expect(parsed).toEqual({
+        success: true,
+        campaign_id: 10,
+        message_id: 20,
+        template_id: 30,
+        dynamic_set_id: 40,
+      });
     });
 
     it('creates campaign email with brand_style_id', async () => {

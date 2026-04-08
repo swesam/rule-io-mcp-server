@@ -25,7 +25,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           sendout_type: sendout_type === 'transactional' ? 2 : 1,
         });
         const id = result.data?.id;
-        return jsonResult(result, id ? campaignUrl(id) : undefined);
+        return jsonResult(result, id != null ? campaignUrl(id) : undefined);
       } catch (error) {
         return handleRuleError(error);
       }
