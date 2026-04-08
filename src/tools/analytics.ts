@@ -27,6 +27,16 @@ const METRICS = [
 
 const MESSAGE_TYPES = ['email', 'text_message'] as const;
 
+/** Append ' 00:00:00' when only a YYYY-MM-DD date is provided (Rule.io API requires datetime). */
+function normaliseDateFrom(date: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date} 00:00:00` : date;
+}
+
+/** Append ' 23:59:59' when only a YYYY-MM-DD date is provided (Rule.io API requires datetime). */
+function normaliseDateTo(date: string): string {
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date} 23:59:59` : date;
+}
+
 export function registerAnalyticsTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_get_analytics',
@@ -94,10 +104,10 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
       type: z
         .enum(['dispatchers', 'statistics', 'subscribers'])
         .describe('Type of data to export'),
-      date_from: z.string().describe('Start date (YYYY-MM-DD)'),
+      date_from: z.string().describe('Start date — YYYY-MM-DD (auto-expanded to 00:00:00) or YYYY-MM-DD HH:mm:ss'),
       date_to: z
         .string()
-        .describe('End date (YYYY-MM-DD). For dispatchers, max 1-day range.'),
+        .describe('End date — YYYY-MM-DD (auto-expanded to 23:59:59) or YYYY-MM-DD HH:mm:ss. For dispatchers, max 1-day range.'),
       next_page_token: z
         .string()
         .optional()
@@ -105,20 +115,22 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
     },
     async ({ type, date_from, date_to, next_page_token }) => {
       try {
+        const from = normaliseDateFrom(date_from);
+        const to = normaliseDateTo(date_to);
         let result;
         switch (type) {
           case 'dispatchers':
-            result = await client.exportDispatchers({ date_from, date_to });
+            result = await client.exportDispatchers({ date_from: from, date_to: to });
             break;
           case 'statistics':
             result = await client.exportStatistics({
-              date_from,
-              date_to,
+              date_from: from,
+              date_to: to,
               next_page_token,
             });
             break;
           case 'subscribers':
-            result = await client.exportSubscribers({ date_from, date_to });
+            result = await client.exportSubscribers({ date_from: from, date_to: to });
             break;
         }
         return jsonResult(result);
