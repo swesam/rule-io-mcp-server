@@ -122,7 +122,7 @@ describe('analytics tools', () => {
   });
 
   describe('rule_export_data', () => {
-    it('exports dispatchers for a date range', async () => {
+    it('exports dispatchers and normalises date-only strings to datetime', async () => {
       const exported = { data: [{ id: 1, sent: 100 }] };
       mocks.exportDispatchers.mockResolvedValue(exported);
 
@@ -135,14 +135,12 @@ describe('analytics tools', () => {
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(exported);
       expect(mocks.exportDispatchers).toHaveBeenCalledWith({
-        date_from: '2025-01-01',
-        date_to: '2025-01-01',
+        date_from: '2025-01-01 00:00:00',
+        date_to: '2025-01-01 23:59:59',
       });
-      expect(mocks.exportStatistics).not.toHaveBeenCalled();
-      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
 
-    it('exports statistics for a date range', async () => {
+    it('exports statistics and normalises date-only strings to datetime', async () => {
       const exported = { data: [{ date: '2025-01-01', opens: 150 }] };
       mocks.exportStatistics.mockResolvedValue(exported);
 
@@ -156,15 +154,13 @@ describe('analytics tools', () => {
       expect(JSON.parse(result.content[0].text)).toEqual(exported);
       expect(mocks.exportStatistics).toHaveBeenCalledWith(
         expect.objectContaining({
-          date_from: '2025-01-01',
-          date_to: '2025-01-31',
+          date_from: '2025-01-01 00:00:00',
+          date_to: '2025-01-31 23:59:59',
         }),
       );
-      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
-      expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
 
-    it('exports subscribers for a date range', async () => {
+    it('exports subscribers and normalises date-only strings to datetime', async () => {
       const exported = { data: [{ id: 1, email: 'subscriber@example.com' }] };
       mocks.exportSubscribers.mockResolvedValue(exported);
 
@@ -177,11 +173,26 @@ describe('analytics tools', () => {
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(exported);
       expect(mocks.exportSubscribers).toHaveBeenCalledWith({
-        date_from: '2025-01-01',
-        date_to: '2025-01-31',
+        date_from: '2025-01-01 00:00:00',
+        date_to: '2025-01-31 23:59:59',
       });
-      expect(mocks.exportDispatchers).not.toHaveBeenCalled();
-      expect(mocks.exportStatistics).not.toHaveBeenCalled();
+    });
+
+    it('passes through full datetime strings unchanged', async () => {
+      mocks.exportStatistics.mockResolvedValue({ data: [] });
+
+      await handlers['rule_export_data']({
+        type: 'statistics',
+        date_from: '2025-01-01 08:00:00',
+        date_to: '2025-01-31 18:30:00',
+      });
+
+      expect(mocks.exportStatistics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01 08:00:00',
+          date_to: '2025-01-31 18:30:00',
+        }),
+      );
     });
   });
 });
