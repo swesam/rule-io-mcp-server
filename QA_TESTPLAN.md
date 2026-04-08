@@ -135,11 +135,15 @@ Then:
 ---
 
 ## Step 15: Set Custom Fields
-Use the subscriber ID from Step 2 (or look up qa-test@example.com first):
+First, re-fetch the subscriber ID (Step 12 may have deleted the original):
+
+> **Prompt:** "Look up the subscriber qa-test@example.com and show me their full profile"
+
+Then use that current ID:
 
 > **Prompt:** "Set custom fields on subscriber [ID]: in the 'Order' group, set OrderNumber to 'ORD-12345' and Status to 'Confirmed'"
 
-**What to look for:** `rule_set_subscriber_fields` with `subscriber_id`, `groups` array containing group name `"Order"` and two field values. Groups and fields should be created automatically.
+**What to look for:** `rule_set_subscriber_fields` with the current `subscriber_id`, `groups` array containing group name `"Order"` and two field values. Groups and fields should be created automatically.
 
 Then verify:
 
@@ -207,11 +211,11 @@ Then:
 ---
 
 ## Step 20: Final Cleanup
-Clean up all test data from the extended testing:
+Clean up all test data from the extended testing. Note: there is no `rule_delete_tag` tool — tag cleanup must be done manually in the Rule.io UI.
 
-> **Prompt:** "Delete the test subscribers qa-test@example.com and qa-test2@example.com, and remove any tags we created during testing (qa-bulk-1, qa-bulk-2)."
+> **Prompt:** "Delete the test subscribers qa-test@example.com and qa-test2@example.com. Then list my tags so I can confirm whether the test tags (qa-bulk-1, qa-bulk-2) still exist and need manual removal."
 
-**What to look for:** `rule_delete_subscriber` for each subscriber, `rule_delete_tag` for the test tags.
+**What to look for:** `rule_delete_subscriber` for each subscriber, then `rule_list_tags` to check for leftover test tags. If they exist, remove them manually in the Rule.io UI.
 
 ---
 
