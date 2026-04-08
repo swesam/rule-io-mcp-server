@@ -62,6 +62,7 @@ describe('automation tools', () => {
         message_id: 200,
         template_id: 300,
         dynamic_set_id: 400,
+        dashboard_url: 'https://app.rule.io/v5/#/app/automations/automail/100/v6/email/200/edit',
       });
     });
 
