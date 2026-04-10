@@ -3,7 +3,6 @@ import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
-import { automationUrl } from '../util/urls.js';
 
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -107,7 +106,6 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
           message_id: result.messageId,
           template_id: result.templateId,
           dynamic_set_id: result.dynamicSetId,
-          dashboard_url: automationUrl(result.automationId, result.messageId),
         });
       } catch (error) {
         return handleRuleError(error);

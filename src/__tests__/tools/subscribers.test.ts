@@ -48,8 +48,8 @@ describe('subscriber tools', () => {
   });
 
   describe('rule_create_subscriber', () => {
-    it('creates subscriber and returns result with dashboard URL', async () => {
-      const created = { id: 375665, email: 'test@example.com', status: 'ACTIVE' };
+    it('creates subscriber and returns result', async () => {
+      const created = { id: 'sub-1', email: 'test@example.com', status: 'ACTIVE' };
       mocks.createSubscriberV3.mockResolvedValue(created);
 
       const result = await handlers['rule_create_subscriber']({
@@ -57,12 +57,7 @@ describe('subscriber tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = JSON.parse(result.content[0].text);
-      expect(parsed.id).toBe(375665);
-      expect(parsed.email).toBe('test@example.com');
-      expect(parsed.dashboard_url).toBe(
-        'https://app.rule.io/v5/#/app/subscribers/item/375665/'
-      );
+      expect(JSON.parse(result.content[0].text)).toEqual(created);
       expect(mocks.createSubscriberV3).toHaveBeenCalledWith({
         email: 'test@example.com',
         phone_number: undefined,

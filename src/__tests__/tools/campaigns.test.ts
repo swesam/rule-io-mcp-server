@@ -42,8 +42,8 @@ describe('campaign tools', () => {
   });
 
   describe('rule_create_campaign', () => {
-    it('creates a campaign and returns result with dashboard URL', async () => {
-      const campaign = { data: { id: 1, name: 'Summer Sale', status: 'draft' } };
+    it('creates a campaign and returns result', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
       mocks.createCampaign.mockResolvedValue(campaign);
 
       const result = await handlers['rule_create_campaign']({
@@ -52,11 +52,7 @@ describe('campaign tools', () => {
       });
 
       expect(result.isError).toBeUndefined();
-      const parsed = JSON.parse(result.content[0].text);
-      expect(parsed.data).toEqual(campaign.data);
-      expect(parsed.dashboard_url).toBe(
-        'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/1/details'
-      );
+      expect(JSON.parse(result.content[0].text)).toEqual(campaign);
       expect(mocks.createCampaign).toHaveBeenCalledWith({
         name: 'Summer Sale',
         message_type: 1,
@@ -176,7 +172,6 @@ describe('campaign tools', () => {
         message_id: 20,
         template_id: 30,
         dynamic_set_id: 40,
-        dashboard_url: 'https://app.rule.io/v5/#/app/campaigns/v6/email/edit/10/details',
       });
     });
 

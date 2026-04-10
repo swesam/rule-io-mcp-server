@@ -2,7 +2,6 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
-import { subscriberUrl } from '../util/urls.js';
 
 export function registerSubscriberTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -25,11 +24,7 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
           language,
           status,
         });
-        const id = result.id;
-        return jsonResult({
-          ...result,
-          ...(id ? { dashboard_url: subscriberUrl(id) } : {}),
-        });
+        return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);
       }
