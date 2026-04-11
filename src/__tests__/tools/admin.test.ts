@@ -220,6 +220,18 @@ describe('admin tools', () => {
         is_default: false,
       });
     });
+
+    it('deletes brand style successfully', async () => {
+      mocks.deleteBrandStyle.mockResolvedValue({ success: true });
+
+      const result = await handlers['rule_manage_brand_style']({
+        action: 'delete',
+        id: 1,
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(mocks.deleteBrandStyle).toHaveBeenCalledWith(1);
+    });
   });
 
   describe('rule_suppress_subscribers', () => {
@@ -258,6 +270,17 @@ describe('admin tools', () => {
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(response);
       expect(mocks.deleteSuppressions).toHaveBeenCalledWith({ subscribers });
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.deleteSuppressions.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_unsuppress_subscribers']({
+        subscribers: [{ email: 'a@test.com' }],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 });

@@ -90,10 +90,12 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         };
 
         if (template) {
+          // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
           config.template = template as unknown as Parameters<typeof client.createAutomationEmail>[0]['template'];
         } else {
           config.brandStyleId = brand_style_id;
           if (sections) {
+            // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
             config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createAutomationEmail>[0]['sections'];
           }
         }

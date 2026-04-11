@@ -168,7 +168,7 @@ Pre-built workflow guides that walk the AI through multi-step email setups.
 |----------|----------|-------------|
 | `RULE_IO_API_KEY` | Yes | Your Rule.io API key |
 | `RULE_IO_DEBUG` | No | Set to `"true"` for debug logging |
-| `RULE_IO_FIELD_GROUP_PREFIX` | No | Custom field group prefix (default: `"Booking"`) |
+| `RULE_IO_FIELD_GROUP_PREFIX` | No | Custom field group prefix (default: `"Order"`) |
 | `RULE_IO_BASE_URL_V2` | No | Custom base URL for v2 API |
 | `RULE_IO_BASE_URL_V3` | No | Custom base URL for v3 API |
 

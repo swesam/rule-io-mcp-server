@@ -65,6 +65,17 @@ describe('subscriber tools', () => {
         status: undefined,
       });
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.createSubscriberV3.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_create_subscriber']({
+        email: 'test@example.com',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_get_subscriber', () => {
@@ -126,6 +137,18 @@ describe('subscriber tools', () => {
       expect(JSON.parse(result.content[0].text)).toEqual(deleteResult);
       expect(mocks.deleteSubscriberV3).toHaveBeenCalledWith('test@example.com', 'email');
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.deleteSubscriberV3.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_delete_subscriber']({
+        subscriber: 'test@example.com',
+        identified_by: 'email',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_manage_subscriber_tags', () => {
@@ -169,6 +192,20 @@ describe('subscriber tools', () => {
       ]);
       expect(mocks.removeSubscriberTagV3).toHaveBeenCalledTimes(2);
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.addSubscriberTagsV3.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_manage_subscriber_tags']({
+        subscriber: 'test@example.com',
+        identified_by: 'email',
+        action: 'add',
+        tags: ['welcome'],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_bulk_manage_tags', () => {
@@ -204,6 +241,19 @@ describe('subscriber tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(mocks.bulkRemoveTags).toHaveBeenCalled();
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.bulkAddTags.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_bulk_manage_tags']({
+        action: 'add',
+        tags: ['promo'],
+        subscribers: [{ email: 'a@example.com' }],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 

@@ -18,6 +18,7 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
           name,
           message_id,
           message_type: 'email' as const,
+          // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
           template: content as unknown as Parameters<typeof client.createTemplate>[0]['template'],
         };
         try {

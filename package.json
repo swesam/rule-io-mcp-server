@@ -16,6 +16,7 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
     "type-check": "tsc --noEmit",
     "start": "node dist/bin/rule-io-mcp.js",
     "prepare": "node -e \"try{require('tsup');require('child_process').execSync('npm run build',{stdio:'inherit'})}catch{}\""
@@ -41,11 +42,12 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^4.1.4",
     "tsup": "^8.0.0",
     "typescript": "^5.9.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.4"
   },
   "engines": {
-    "node": ">=20"
+    "node": "^20.19.0 || >=22.12.0"
   }
 }

@@ -202,5 +202,18 @@ describe('analytics tools', () => {
       expect(mocks.exportDispatchers).not.toHaveBeenCalled();
       expect(mocks.exportSubscribers).not.toHaveBeenCalled();
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.exportDispatchers.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_export_data']({
+        type: 'dispatchers',
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 });
