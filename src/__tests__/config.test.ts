@@ -31,7 +31,7 @@ describe('loadConfig', () => {
     expect(config).toEqual({
       apiKey: 'test-key-123',
       debug: false,
-      fieldGroupPrefix: 'Booking',
+      fieldGroupPrefix: 'Order',
       baseUrlV2: undefined,
       baseUrlV3: undefined,
     });

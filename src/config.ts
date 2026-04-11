@@ -18,7 +18,7 @@ export function loadConfig(): ServerConfig {
   return {
     apiKey,
     debug: process.env.RULE_IO_DEBUG === 'true',
-    fieldGroupPrefix: process.env.RULE_IO_FIELD_GROUP_PREFIX ?? 'Booking',
+    fieldGroupPrefix: process.env.RULE_IO_FIELD_GROUP_PREFIX ?? 'Order',
     baseUrlV2: process.env.RULE_IO_BASE_URL_V2,
     baseUrlV3: process.env.RULE_IO_BASE_URL_V3,
   };

@@ -77,7 +77,7 @@ describe('createServer', () => {
     const server = createServer({
       apiKey: 'test-key',
       debug: false,
-      fieldGroupPrefix: 'Booking',
+      fieldGroupPrefix: 'Order',
     });
 
     expect(server).toBeDefined();
@@ -99,7 +99,7 @@ describe('createServer', () => {
     createServer({
       apiKey: 'test-key',
       debug: false,
-      fieldGroupPrefix: 'Booking',
+      fieldGroupPrefix: 'Order',
     });
 
     const registeredNames = toolSpy.mock.calls.map(
