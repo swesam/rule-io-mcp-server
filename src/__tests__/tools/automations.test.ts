@@ -254,6 +254,15 @@ describe('automation tools', () => {
       expect(result.isError).toBeUndefined();
       expect(result.content[0].text).toContain('Automation 999 not found');
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.getAutomation.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_get_automation']({ id: 1 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_update_automation', () => {
@@ -306,6 +315,18 @@ describe('automation tools', () => {
       expect(mocks.updateAutomation).toHaveBeenCalledWith(1, {
         trigger: { type: 'TAG', id: 42 },
       });
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.updateAutomation.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_update_automation']({
+        id: 1,
+        active: false,
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 

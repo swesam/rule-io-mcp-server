@@ -99,6 +99,18 @@ describe('campaign tools', () => {
         datetime: undefined,
       });
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.scheduleCampaign.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_schedule_campaign']({
+        id: 1,
+        action: 'send_now',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_list_campaigns', () => {
@@ -111,6 +123,15 @@ describe('campaign tools', () => {
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(campaigns);
       expect(mocks.listCampaigns).toHaveBeenCalledWith({ page: 1, per_page: 25 });
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.listCampaigns.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_list_campaigns']({ page: 1, per_page: 25 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 
@@ -133,6 +154,15 @@ describe('campaign tools', () => {
       expect(result.isError).toBeUndefined();
       expect(result.content[0].text).toContain('Campaign 999 not found');
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.getCampaign.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_get_campaign']({ id: 1 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_update_campaign', () => {
@@ -144,6 +174,15 @@ describe('campaign tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(updated);
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.updateCampaign.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_update_campaign']({ id: 1, name: 'Fail' });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 
@@ -337,6 +376,15 @@ describe('campaign tools', () => {
       expect(JSON.parse(result.content[0].text)).toEqual(copy);
       expect(mocks.copyCampaign).toHaveBeenCalledWith(1);
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.copyCampaign.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_copy_campaign']({ id: 1 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_list_segments', () => {
@@ -348,6 +396,15 @@ describe('campaign tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(segments);
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.listSegments.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_list_segments']({ page: 1, per_page: 25 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 });
