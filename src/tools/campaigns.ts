@@ -2,7 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
-import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { createCampaignEmailSchema } from './schemas.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -94,68 +95,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
   server.tool(
     'rule_create_campaign_email',
     'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new campaign. Do not retry on timeout without first checking rule_list_campaigns for duplicates. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
-    {
-      name: z.string().describe('Campaign name (shown in Rule.io dashboard)'),
-      subject: z.string().describe('Email subject line'),
-      template: z
-        .record(z.string(), z.unknown())
-        .optional()
-        .describe(
-          'Full RCML document object for advanced use. Most callers should use brand_style_id + sections instead. Provide this OR brand_style_id, not both.'
-        ),
-      brand_style_id: z
-        .number()
-        .optional()
-        .describe(
-          'Brand style ID to auto-generate an editor-compatible RCML template. Use rule_list_brand_styles to find available styles. Provide this OR template, not both.'
-        ),
-      sections: sectionsSchema.optional(),
-      tags: z
-        .array(
-          z.object({
-            id: z.number().describe('Tag ID'),
-            negative: z
-              .boolean()
-              .optional()
-              .default(false)
-              .describe('If true, excludes subscribers with this tag'),
-          })
-        )
-        .optional()
-        .describe(
-          'Tags to target as recipients. Use rule_list_tags to find tag IDs.'
-        ),
-      segments: z
-        .array(
-          z.object({
-            id: z.number().describe('Segment ID'),
-            negative: z
-              .boolean()
-              .optional()
-              .default(false)
-              .describe('If true, excludes subscribers in this segment'),
-          })
-        )
-        .optional()
-        .describe(
-          'Segments to target as recipients. Use rule_list_segments to find segment IDs.'
-        ),
-      subscribers: z
-        .array(z.number())
-        .optional()
-        .describe('Specific subscriber IDs to target'),
-      preheader: z.string().optional().describe('Preview text shown in email inbox'),
-      from_name: z.string().optional().describe('Sender display name'),
-      from_email: z.string().optional().describe('Sender email address'),
-      reply_to: z.string().optional().describe('Reply-to email address'),
-      sendout_type: z
-        .enum(['marketing', 'transactional'])
-        .optional()
-        .default('marketing')
-        .describe(
-          'Email type: "marketing" for campaigns/newsletters (default), "transactional" for order confirmations etc.'
-        ),
-    },
+    createCampaignEmailSchema.shape,
     async ({
       name,
       subject,
