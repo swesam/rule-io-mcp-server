@@ -36,8 +36,11 @@ export const manageSubscriberTagsSchema = z.object({
     ),
 });
 
-/** Schema for rule_create_campaign_email tool inputs. */
-export const createCampaignEmailSchema = z.object({
+/**
+ * Inner z.object for rule_create_campaign_email — use `.shape` for MCP tool
+ * registration while the refined schema below enforces the template XOR.
+ */
+export const createCampaignEmailBaseSchema = z.object({
   name: z.string().describe('Campaign name (shown in Rule.io dashboard)'),
   subject: z.string().describe('Email subject line'),
   template: z
@@ -98,4 +101,36 @@ export const createCampaignEmailSchema = z.object({
     .describe(
       'Email type: "marketing" for campaigns/newsletters (default), "transactional" for order confirmations etc.'
     ),
+});
+
+/** Schema for rule_create_campaign_email tool inputs (with XOR refinement). */
+export const createCampaignEmailSchema = createCampaignEmailBaseSchema.superRefine((data, ctx) => {
+  const hasTemplate = data.template !== undefined;
+  const hasBrandStyleId = data.brand_style_id !== undefined;
+
+  if (hasTemplate && hasBrandStyleId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['template'],
+      message: 'Provide either template or brand_style_id, not both.',
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['brand_style_id'],
+      message: 'Provide either brand_style_id or template, not both.',
+    });
+  }
+
+  if (!hasTemplate && !hasBrandStyleId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['template'],
+      message: 'Provide either template or brand_style_id.',
+    });
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['brand_style_id'],
+      message: 'Provide either brand_style_id or template.',
+    });
+  }
 });

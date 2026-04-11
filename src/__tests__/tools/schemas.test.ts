@@ -293,4 +293,34 @@ describe('createCampaignEmailSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('rejects providing both template and brand_style_id', () => {
+    const result = createCampaignEmailSchema.safeParse({
+      name: 'Campaign',
+      subject: 'Hello',
+      template: { doc: 'rcml-content' },
+      brand_style_id: 42,
+      tags: [{ id: 1 }],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join('.'));
+      expect(paths).toContain('template');
+      expect(paths).toContain('brand_style_id');
+    }
+  });
+
+  it('rejects providing neither template nor brand_style_id', () => {
+    const result = createCampaignEmailSchema.safeParse({
+      name: 'Campaign',
+      subject: 'Hello',
+      tags: [{ id: 1 }],
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const paths = result.error.issues.map((i) => i.path.join('.'));
+      expect(paths).toContain('template');
+      expect(paths).toContain('brand_style_id');
+    }
+  });
 });

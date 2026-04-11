@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { buildSectionsFromBlocks } from '../util/content-blocks.js';
-import { createCampaignEmailSchema } from './schemas.js';
+import { createCampaignEmailBaseSchema } from './schemas.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -95,7 +95,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
   server.tool(
     'rule_create_campaign_email',
     'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new campaign. Do not retry on timeout without first checking rule_list_campaigns for duplicates. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
-    createCampaignEmailSchema.shape,
+    createCampaignEmailBaseSchema.shape,
     async ({
       name,
       subject,
