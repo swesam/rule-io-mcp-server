@@ -2,7 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
-import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -94,68 +95,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
   server.tool(
     'rule_create_campaign_email',
     'Create a complete campaign email in one step. This sets up a campaign, message, template, and dynamic set — equivalent to 4 separate API calls. WARNING: Not idempotent — each call creates a new campaign. Do not retry on timeout without first checking rule_list_campaigns for duplicates. Provide a subject, recipients (tags/segments/subscribers), and either an RCML template document OR a brand_style_id with sections to auto-generate one. If any step fails, previously created resources are automatically cleaned up.',
-    {
-      name: z.string().describe('Campaign name (shown in Rule.io dashboard)'),
-      subject: z.string().describe('Email subject line'),
-      template: z
-        .record(z.string(), z.unknown())
-        .optional()
-        .describe(
-          'Full RCML document object for advanced use. Most callers should use brand_style_id + sections instead. Provide this OR brand_style_id, not both.'
-        ),
-      brand_style_id: z
-        .number()
-        .optional()
-        .describe(
-          'Brand style ID to auto-generate an editor-compatible RCML template. Use rule_list_brand_styles to find available styles. Provide this OR template, not both.'
-        ),
-      sections: sectionsSchema.optional(),
-      tags: z
-        .array(
-          z.object({
-            id: z.number().describe('Tag ID'),
-            negative: z
-              .boolean()
-              .optional()
-              .default(false)
-              .describe('If true, excludes subscribers with this tag'),
-          })
-        )
-        .optional()
-        .describe(
-          'Tags to target as recipients. Use rule_list_tags to find tag IDs.'
-        ),
-      segments: z
-        .array(
-          z.object({
-            id: z.number().describe('Segment ID'),
-            negative: z
-              .boolean()
-              .optional()
-              .default(false)
-              .describe('If true, excludes subscribers in this segment'),
-          })
-        )
-        .optional()
-        .describe(
-          'Segments to target as recipients. Use rule_list_segments to find segment IDs.'
-        ),
-      subscribers: z
-        .array(z.number())
-        .optional()
-        .describe('Specific subscriber IDs to target'),
-      preheader: z.string().optional().describe('Preview text shown in email inbox'),
-      from_name: z.string().optional().describe('Sender display name'),
-      from_email: z.string().optional().describe('Sender email address'),
-      reply_to: z.string().optional().describe('Reply-to email address'),
-      sendout_type: z
-        .enum(['marketing', 'transactional'])
-        .optional()
-        .default('marketing')
-        .describe(
-          'Email type: "marketing" for campaigns/newsletters (default), "transactional" for order confirmations etc.'
-        ),
-    },
+    createCampaignEmailBaseSchema.shape,
     async ({
       name,
       subject,
@@ -172,47 +112,54 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
       sendout_type,
     }) => {
       try {
+        // Validate XOR constraint (template vs brand_style_id) via the
+        // refined schema — the MCP tool registration uses .shape which
+        // cannot carry superRefine, so we enforce it here at runtime.
+        // We use xorResult.data below so that defaults/transforms from the
+        // base schema (e.g. sectionsSchema normalisation) are applied.
+        const xorResult = createCampaignEmailSchema.safeParse({
+          name, subject, template, brand_style_id, sections,
+          tags, segments, subscribers, preheader,
+          from_name, from_email, reply_to, sendout_type,
+        });
+        if (!xorResult.success) {
+          const uniqueMessages = [...new Set(xorResult.error.issues.map((i) => i.message))];
+          return errorResult(uniqueMessages.join(' '));
+        }
+
+        const validated = xorResult.data;
+
         const hasRecipients =
-          (tags && tags.length > 0) ||
-          (segments && segments.length > 0) ||
-          (subscribers && subscribers.length > 0);
+          (validated.tags && validated.tags.length > 0) ||
+          (validated.segments && validated.segments.length > 0) ||
+          (validated.subscribers && validated.subscribers.length > 0);
         if (!hasRecipients) {
           return errorResult(
             'At least one recipient is required: provide "tags", "segments", or "subscribers". Use rule_list_tags or rule_list_segments to find tag/segment IDs, or rule_get_subscriber (by email) to find subscriber IDs.'
           );
         }
-        if (!template && !brand_style_id) {
-          return errorResult(
-            'Provide either "template" (RCML document) or "brand_style_id" to generate a template.'
-          );
-        }
-        if (template && brand_style_id) {
-          return errorResult(
-            'Provide either "template" or "brand_style_id", not both.'
-          );
-        }
 
         const config: Parameters<typeof client.createCampaignEmail>[0] = {
-          name,
-          subject,
-          preheader,
-          fromName: from_name,
-          fromEmail: from_email,
-          replyTo: reply_to,
-          sendoutType: sendout_type === 'transactional' ? 2 : 1,
-          tags,
-          segments,
-          subscribers,
+          name: validated.name,
+          subject: validated.subject,
+          preheader: validated.preheader,
+          fromName: validated.from_name,
+          fromEmail: validated.from_email,
+          replyTo: validated.reply_to,
+          sendoutType: validated.sendout_type === 'transactional' ? 2 : 1,
+          tags: validated.tags,
+          segments: validated.segments,
+          subscribers: validated.subscribers,
         };
 
-        if (template) {
+        if (validated.template) {
           // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-          config.template = template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
+          config.template = validated.template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
         } else {
-          config.brandStyleId = brand_style_id;
-          if (sections) {
+          config.brandStyleId = validated.brand_style_id;
+          if (validated.sections) {
             // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-            config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
+            config.sections = buildSectionsFromBlocks(validated.sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
           }
         }
 

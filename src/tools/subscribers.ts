@@ -2,20 +2,13 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
+import { createSubscriberSchema, manageSubscriberTagsSchema } from './schemas.js';
 
 export function registerSubscriberTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_subscriber',
     'Create a new subscriber in Rule.io. Provide an email and optionally a phone number, language, and status. To add tags after creation, use rule_manage_subscriber_tags.',
-    {
-      email: z.string().email().describe('Subscriber email address'),
-      phone_number: z.string().optional().describe('Phone number (E.164 format preferred)'),
-      language: z.string().optional().describe('Two-letter language code (e.g. "en", "sv")'),
-      status: z
-        .enum(['ACTIVE', 'BLOCKED', 'PENDING'])
-        .optional()
-        .describe('Subscriber status (default: ACTIVE)'),
-    },
+    createSubscriberSchema.shape,
     async ({ email, phone_number, language, status }) => {
       try {
         const result = await client.createSubscriberV3({
@@ -84,24 +77,7 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
   server.tool(
     'rule_manage_subscriber_tags',
     'Add or remove tags from a single subscriber. When adding tags, you can optionally trigger automations associated with those tags.',
-    {
-      subscriber: z.string().describe('Subscriber identifier (email, ID, or phone number)'),
-      identified_by: z
-        .enum(['email', 'id', 'phone_number', 'custom_identifier'])
-        .optional()
-        .default('email')
-        .describe('How the subscriber is identified (default: email)'),
-      action: z.enum(['add', 'remove']).describe('"add" to add tags, "remove" to remove a tag'),
-      tags: z
-        .array(z.string())
-        .describe('Tag names to add or remove. When removing, tags are removed one at a time sequentially.'),
-      trigger_automation: z
-        .enum(['force', 'reset'])
-        .optional()
-        .describe(
-          'When adding tags: "force" always triggers automations, "reset" re-triggers with delay reset. Omit to not trigger.'
-        ),
-    },
+    manageSubscriberTagsSchema.shape,
     async ({ subscriber, identified_by, action, tags, trigger_automation }) => {
       try {
         if (action === 'add') {
