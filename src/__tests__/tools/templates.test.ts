@@ -86,6 +86,15 @@ describe('template tools', () => {
       expect(result.isError).toBeUndefined();
       expect(result.content[0].text).toContain('<html>');
     });
+
+    it('returns isError on API failure', async () => {
+      mocks.renderTemplate.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_render_template']({ id: 10 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
   });
 
   describe('rule_list_templates', () => {
@@ -98,6 +107,15 @@ describe('template tools', () => {
       expect(result.isError).toBeUndefined();
       expect(JSON.parse(result.content[0].text)).toEqual(templates);
       expect(mocks.listTemplates).toHaveBeenCalledWith({ page: 1, per_page: 25 });
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.listTemplates.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_list_templates']({ page: 1, per_page: 25 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 
@@ -147,6 +165,15 @@ describe('template tools', () => {
 
       expect(result.isError).toBeUndefined();
       expect(result.content[0].text).toContain('Template 999 not found');
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.getTemplate.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_get_template']({ id: 10 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 
