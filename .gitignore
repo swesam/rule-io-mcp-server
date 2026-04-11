@@ -2,6 +2,7 @@ node_modules/
 dist/
 *.tsbuildinfo
 .env
+coverage/
 
 # Claude Code
 .claude/
