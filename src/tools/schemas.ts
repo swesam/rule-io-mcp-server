@@ -111,26 +111,14 @@ export const createCampaignEmailSchema = createCampaignEmailBaseSchema.superRefi
   if (hasTemplate && hasBrandStyleId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ['template'],
-      message: 'Provide either template or brand_style_id, not both.',
-    });
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['brand_style_id'],
-      message: 'Provide either brand_style_id or template, not both.',
+      message: 'Provide exactly one of template or brand_style_id, not both.',
     });
   }
 
   if (!hasTemplate && !hasBrandStyleId) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      path: ['template'],
-      message: 'Provide either template or brand_style_id.',
-    });
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['brand_style_id'],
-      message: 'Provide either brand_style_id or template.',
+      message: 'Provide exactly one of template or brand_style_id.',
     });
   }
 });

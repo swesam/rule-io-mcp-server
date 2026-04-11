@@ -115,20 +115,24 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         // Validate XOR constraint (template vs brand_style_id) via the
         // refined schema — the MCP tool registration uses .shape which
         // cannot carry superRefine, so we enforce it here at runtime.
+        // We use xorResult.data below so that defaults/transforms from the
+        // base schema (e.g. sectionsSchema normalisation) are applied.
         const xorResult = createCampaignEmailSchema.safeParse({
           name, subject, template, brand_style_id, sections,
           tags, segments, subscribers, preheader,
           from_name, from_email, reply_to, sendout_type,
         });
         if (!xorResult.success) {
-          const messages = xorResult.error.issues.map((i) => i.message);
-          return errorResult(messages.join(' '));
+          const uniqueMessages = [...new Set(xorResult.error.issues.map((i) => i.message))];
+          return errorResult(uniqueMessages.join(' '));
         }
 
+        const validated = xorResult.data;
+
         const hasRecipients =
-          (tags && tags.length > 0) ||
-          (segments && segments.length > 0) ||
-          (subscribers && subscribers.length > 0);
+          (validated.tags && validated.tags.length > 0) ||
+          (validated.segments && validated.segments.length > 0) ||
+          (validated.subscribers && validated.subscribers.length > 0);
         if (!hasRecipients) {
           return errorResult(
             'At least one recipient is required: provide "tags", "segments", or "subscribers". Use rule_list_tags or rule_list_segments to find tag/segment IDs, or rule_get_subscriber (by email) to find subscriber IDs.'
@@ -136,24 +140,24 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         }
 
         const config: Parameters<typeof client.createCampaignEmail>[0] = {
-          name,
-          subject,
-          preheader,
-          fromName: from_name,
-          fromEmail: from_email,
-          replyTo: reply_to,
-          sendoutType: sendout_type === 'transactional' ? 2 : 1,
-          tags,
-          segments,
-          subscribers,
+          name: validated.name,
+          subject: validated.subject,
+          preheader: validated.preheader,
+          fromName: validated.from_name,
+          fromEmail: validated.from_email,
+          replyTo: validated.reply_to,
+          sendoutType: validated.sendout_type === 'transactional' ? 2 : 1,
+          tags: validated.tags,
+          segments: validated.segments,
+          subscribers: validated.subscribers,
         };
 
-        if (template) {
-          config.template = template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
+        if (validated.template) {
+          config.template = validated.template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
         } else {
-          config.brandStyleId = brand_style_id;
-          if (sections) {
-            config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
+          config.brandStyleId = validated.brand_style_id;
+          if (validated.sections) {
+            config.sections = buildSectionsFromBlocks(validated.sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
           }
         }
 

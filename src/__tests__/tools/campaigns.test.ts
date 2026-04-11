@@ -275,7 +275,7 @@ describe('campaign tools', () => {
       });
 
       expect(result.isError).toBe(true);
-      expect(result.content[0].text).toContain('Provide either');
+      expect(result.content[0].text).toContain('Provide exactly one');
     });
 
     it('returns error when both template and brand_style_id provided', async () => {

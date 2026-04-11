@@ -304,11 +304,12 @@ describe('createCampaignEmailBaseSchema', () => {
 //
 // The MCP SDK's server.tool() accepts a .shape record, so the superRefine
 // cannot be applied at MCP schema registration. Instead, the tool handler
-// validates input through createCampaignEmailSchema at runtime. These tests
-// cover that XOR enforcement layer.
+// re-parses input through createCampaignEmailSchema at runtime to enforce the
+// XOR constraint and to obtain transformed/defaulted values. These tests
+// validate that runtime XOR enforcement layer.
 // ---------------------------------------------------------------------------
-describe('createCampaignEmailSchema (XOR refinement)', () => {
-  it('rejects providing both template and brand_style_id', () => {
+describe('createCampaignEmailSchema (runtime XOR refinement)', () => {
+  it('rejects providing both template and brand_style_id with a single clear message', () => {
     const result = createCampaignEmailSchema.safeParse({
       name: 'Campaign',
       subject: 'Hello',
@@ -318,13 +319,12 @@ describe('createCampaignEmailSchema (XOR refinement)', () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      const paths = result.error.issues.map((i) => i.path.join('.'));
-      expect(paths).toContain('template');
-      expect(paths).toContain('brand_style_id');
+      expect(result.error.issues).toHaveLength(1);
+      expect(result.error.issues[0].message).toContain('not both');
     }
   });
 
-  it('rejects providing neither template nor brand_style_id', () => {
+  it('rejects providing neither template nor brand_style_id with a single clear message', () => {
     const result = createCampaignEmailSchema.safeParse({
       name: 'Campaign',
       subject: 'Hello',
@@ -332,9 +332,8 @@ describe('createCampaignEmailSchema (XOR refinement)', () => {
     });
     expect(result.success).toBe(false);
     if (!result.success) {
-      const paths = result.error.issues.map((i) => i.path.join('.'));
-      expect(paths).toContain('template');
-      expect(paths).toContain('brand_style_id');
+      expect(result.error.issues).toHaveLength(1);
+      expect(result.error.issues[0].message).toContain('exactly one');
     }
   });
 
@@ -354,5 +353,18 @@ describe('createCampaignEmailSchema (XOR refinement)', () => {
       subscribers: [101],
     });
     expect(withTemplate.success).toBe(true);
+  });
+
+  it('returns transformed data with defaults applied on success', () => {
+    const result = createCampaignEmailSchema.safeParse({
+      name: 'Campaign',
+      subject: 'Hello',
+      brand_style_id: 42,
+      tags: [{ id: 1 }],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.sendout_type).toBe('marketing');
+    }
   });
 });
