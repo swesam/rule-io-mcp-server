@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   createSubscriberSchema,
   manageSubscriberTagsSchema,
+  createCampaignEmailBaseSchema,
   createCampaignEmailSchema,
 } from '../../tools/schemas.js';
 
@@ -164,9 +165,12 @@ describe('manageSubscriberTagsSchema', () => {
 });
 
 // ---------------------------------------------------------------------------
-// rule_create_campaign_email
+// rule_create_campaign_email — base schema (field-level validation)
+//
+// The MCP tool registration uses createCampaignEmailBaseSchema.shape, so these
+// tests cover the field-level validation that runs during MCP input parsing.
 // ---------------------------------------------------------------------------
-describe('createCampaignEmailSchema', () => {
+describe('createCampaignEmailBaseSchema', () => {
   const validBase = {
     name: 'Spring Sale',
     subject: '50% off everything!',
@@ -175,12 +179,12 @@ describe('createCampaignEmailSchema', () => {
   };
 
   it('accepts valid input with brand_style_id and tag recipients', () => {
-    const result = createCampaignEmailSchema.safeParse(validBase);
+    const result = createCampaignEmailBaseSchema.safeParse(validBase);
     expect(result.success).toBe(true);
   });
 
   it('accepts valid input with template instead of brand_style_id', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       name: 'Campaign',
       subject: 'Hello',
       template: { doc: 'rcml-content' },
@@ -190,7 +194,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('accepts segment recipients', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       tags: undefined,
       segments: [{ id: 5 }],
@@ -199,7 +203,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('accepts subscriber ID recipients', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       tags: undefined,
       subscribers: [10, 20, 30],
@@ -209,18 +213,18 @@ describe('createCampaignEmailSchema', () => {
 
   it('rejects missing name', () => {
     const { name: _, ...noName } = validBase;
-    const result = createCampaignEmailSchema.safeParse(noName);
+    const result = createCampaignEmailBaseSchema.safeParse(noName);
     expect(result.success).toBe(false);
   });
 
   it('rejects missing subject', () => {
     const { subject: _, ...noSubject } = validBase;
-    const result = createCampaignEmailSchema.safeParse(noSubject);
+    const result = createCampaignEmailBaseSchema.safeParse(noSubject);
     expect(result.success).toBe(false);
   });
 
   it('rejects non-numeric brand_style_id', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       brand_style_id: 'abc',
     });
@@ -228,7 +232,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('rejects tags with non-numeric id', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       tags: [{ id: 'not-a-number' }],
     });
@@ -236,7 +240,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('rejects subscribers with non-numeric elements', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       subscribers: ['email@example.com'],
     });
@@ -244,7 +248,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('rejects invalid sendout_type', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       sendout_type: 'promotional',
     });
@@ -252,7 +256,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('accepts all optional email fields', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       preheader: 'Don\'t miss out!',
       from_name: 'Store',
@@ -264,7 +268,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('accepts sections with brand_style_id', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       sections: [
         { type: 'heading', text: 'Big Sale' },
@@ -276,7 +280,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('defaults sendout_type to marketing', () => {
-    const result = createCampaignEmailSchema.safeParse(validBase);
+    const result = createCampaignEmailBaseSchema.safeParse(validBase);
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.sendout_type).toBe('marketing');
@@ -284,7 +288,7 @@ describe('createCampaignEmailSchema', () => {
   });
 
   it('accepts negative flag on tags', () => {
-    const result = createCampaignEmailSchema.safeParse({
+    const result = createCampaignEmailBaseSchema.safeParse({
       ...validBase,
       tags: [
         { id: 1, negative: false },
@@ -293,7 +297,17 @@ describe('createCampaignEmailSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+});
 
+// ---------------------------------------------------------------------------
+// rule_create_campaign_email — refined schema (template/brand_style_id XOR)
+//
+// The MCP SDK's server.tool() accepts a .shape record, so the superRefine
+// cannot be applied at MCP schema registration. Instead, the tool handler
+// validates input through createCampaignEmailSchema at runtime. These tests
+// cover that XOR enforcement layer.
+// ---------------------------------------------------------------------------
+describe('createCampaignEmailSchema (XOR refinement)', () => {
   it('rejects providing both template and brand_style_id', () => {
     const result = createCampaignEmailSchema.safeParse({
       name: 'Campaign',
@@ -322,5 +336,23 @@ describe('createCampaignEmailSchema', () => {
       expect(paths).toContain('template');
       expect(paths).toContain('brand_style_id');
     }
+  });
+
+  it('accepts exactly one of template or brand_style_id', () => {
+    const withBrandStyle = createCampaignEmailSchema.safeParse({
+      name: 'Campaign',
+      subject: 'Hello',
+      brand_style_id: 42,
+      tags: [{ id: 1 }],
+    });
+    expect(withBrandStyle.success).toBe(true);
+
+    const withTemplate = createCampaignEmailSchema.safeParse({
+      name: 'Campaign',
+      subject: 'Hello',
+      template: { doc: 'rcml-content' },
+      subscribers: [101],
+    });
+    expect(withTemplate.success).toBe(true);
   });
 });

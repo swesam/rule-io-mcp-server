@@ -3,7 +3,7 @@ import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { buildSectionsFromBlocks } from '../util/content-blocks.js';
-import { createCampaignEmailBaseSchema } from './schemas.js';
+import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -112,6 +112,19 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
       sendout_type,
     }) => {
       try {
+        // Validate XOR constraint (template vs brand_style_id) via the
+        // refined schema — the MCP tool registration uses .shape which
+        // cannot carry superRefine, so we enforce it here at runtime.
+        const xorResult = createCampaignEmailSchema.safeParse({
+          name, subject, template, brand_style_id, sections,
+          tags, segments, subscribers, preheader,
+          from_name, from_email, reply_to, sendout_type,
+        });
+        if (!xorResult.success) {
+          const messages = xorResult.error.issues.map((i) => i.message);
+          return errorResult(messages.join(' '));
+        }
+
         const hasRecipients =
           (tags && tags.length > 0) ||
           (segments && segments.length > 0) ||
@@ -119,16 +132,6 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         if (!hasRecipients) {
           return errorResult(
             'At least one recipient is required: provide "tags", "segments", or "subscribers". Use rule_list_tags or rule_list_segments to find tag/segment IDs, or rule_get_subscriber (by email) to find subscriber IDs.'
-          );
-        }
-        if (!template && !brand_style_id) {
-          return errorResult(
-            'Provide either "template" (RCML document) or "brand_style_id" to generate a template.'
-          );
-        }
-        if (template && brand_style_id) {
-          return errorResult(
-            'Provide either "template" or "brand_style_id", not both.'
           );
         }
 
