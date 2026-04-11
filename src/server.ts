@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { RuleClient } from 'rule-io-sdk';
 import type { ServerConfig } from './config.js';
@@ -11,10 +12,13 @@ import { registerAdminTools } from './tools/admin.js';
 import { registerResources } from './resources/index.js';
 import { registerPrompts } from './prompts/index.js';
 
+const require = createRequire(import.meta.url);
+const { version } = require('../package.json') as { version: string };
+
 export function createServer(config: ServerConfig): McpServer {
   const server = new McpServer({
     name: 'rule-io',
-    version: '0.1.0',
+    version,
   });
 
   const client = new RuleClient({

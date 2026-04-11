@@ -206,10 +206,12 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         };
 
         if (template) {
+          // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
           config.template = template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
         } else {
           config.brandStyleId = brand_style_id;
           if (sections) {
+            // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
             config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
           }
         }
