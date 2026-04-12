@@ -270,7 +270,7 @@ These are areas where the codebase is solid — verify during review to confirm.
 ## How to Verify
 
 ```bash
-# Run tests — expect all ~169 to pass
+# Run tests — expect the full test suite to pass
 npm test
 
 # Type check — expect zero errors

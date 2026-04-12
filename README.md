@@ -72,8 +72,8 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_delete_subscriber` | Delete a subscriber | `subscriber`, `identified_by?` |
 | `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `identified_by?`, `action`, `tags`, `trigger_automation?` |
 | `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[{ email?, phone_number? }]`, `trigger_automation?` |
-| `rule_set_subscriber_fields` | Set custom field data on a subscriber | `subscriber_id`, `groups[{ group, values }]` |
-| `rule_block_subscribers` | Block or unblock multiple subscribers | `action`, `subscribers[]` |
+| `rule_set_subscriber_fields` | Set custom field data on a subscriber | `subscriber_id`, `groups[{ group, values[{ field, value, historical? }] }]` |
+| `rule_block_subscribers` | Block or unblock multiple subscribers | `action`, `subscribers[{ email? \| phone_number? \| id? }]` |
 
 ### Automations
 
