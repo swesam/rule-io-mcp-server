@@ -54,7 +54,7 @@ That's it. The server starts automatically when Claude needs it.
 
 ## Tools
 
-25 tools organized into 7 categories.
+35 tools organized into 7 categories.
 
 ### Tags
 
@@ -72,24 +72,31 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_delete_subscriber` | Delete a subscriber | `subscriber`, `identified_by?` |
 | `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `identified_by?`, `action`, `tags`, `trigger_automation?` |
 | `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[{ email?, phone_number? }]`, `trigger_automation?` |
+| `rule_set_subscriber_fields` | Set custom field data on a subscriber | `subscriber`, `identified_by?`, `fields` |
+| `rule_block_subscribers` | Block or unblock multiple subscribers | `action`, `subscribers[]` |
 
 ### Automations
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
 | `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template`, `sendout_type?` |
-| `rule_list_automails` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
-| `rule_get_automail` | Get automation details by ID | `id` |
-| `rule_update_automail` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
+| `rule_list_automations` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
+| `rule_get_automation` | Get automation details by ID | `id` |
+| `rule_update_automation` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
+| `rule_delete_automation` | Delete an automation | `id` |
 
 ### Campaigns
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
 | `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
+| `rule_create_campaign_email` | Create and attach an email to a campaign | `campaign_id`, `subject`, `template` or `brand_style_id` |
 | `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
 | `rule_get_campaign` | Get campaign details by ID | `id` |
 | `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
+| `rule_delete_campaign` | Delete a campaign | `id` |
+| `rule_copy_campaign` | Duplicate an existing campaign | `id` |
+| `rule_list_segments` | List available segments for campaign targeting | _(none)_ |
 | `rule_schedule_campaign` | Schedule, send, or cancel a campaign | `id`, `action`, `datetime?` |
 
 ### Templates
@@ -99,6 +106,8 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_create_template` | Create RCML email template | `name`, `message_id`, `content` |
 | `rule_list_templates` | List templates | `page?`, `per_page?` |
 | `rule_render_template` | Render template to HTML (with optional merge tag substitution) | `id`, `subscriber_id?` |
+| `rule_get_template` | Get template details by ID | `id` |
+| `rule_delete_template` | Delete a template | `id` |
 
 ### Analytics
 
@@ -112,6 +121,7 @@ That's it. The server starts automatically when Claude needs it.
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
 | `rule_list_brand_styles` | List brand styles | _(none)_ |
+| `rule_get_brand_style` | Get full details of a brand style | `id` |
 | `rule_manage_brand_style` | Create/update/delete brand styles | `action`, `id?`, `domain?`, `name?` |
 | `rule_suppress_subscribers` | Suppress subscribers from emails | `subscribers[]` |
 | `rule_unsuppress_subscribers` | Remove suppression | `subscribers[]` |
@@ -126,8 +136,10 @@ Resources provide read-only context that AI assistants can pull in automatically
 |-----|-------------|
 | `rule://tags` | All tags |
 | `rule://brand-styles` | All brand styles |
-| `rule://automails/{id}` | Automail by ID |
+| `rule://segments` | All segments |
+| `rule://automations/{id}` | Automation by ID |
 | `rule://campaigns/{id}` | Campaign by ID |
+| `rule://templates/{id}` | Template by ID |
 | `rule://brand-styles/{id}` | Brand style by ID |
 
 ---
@@ -247,6 +259,7 @@ npm run build          # Build with tsup
 npm run dev            # Build in watch mode
 npm run test           # Run tests (vitest)
 npm run test:watch     # Tests in watch mode
+npm run test:coverage  # Run tests with coverage report
 npm run type-check     # TypeScript type checking
 npm run start          # Start the MCP server
 ```

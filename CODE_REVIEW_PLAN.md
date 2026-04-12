@@ -2,7 +2,7 @@
 
 ## Context
 
-A developer needs to code review this MCP server that wraps the Rule.io email marketing API. The codebase has **35 tools, 7 resources, 9 prompts**, and **~151 test cases** across 11 test files. Stack: TypeScript (strict), tsup, Vitest, MCP SDK, rule-io-sdk, zod.
+A developer needs to code review this MCP server that wraps the Rule.io email marketing API. The codebase has **35 tools, 7 resources, 9 prompts**, and **~169 test cases** across 12 test files. Stack: TypeScript (strict), tsup, Vitest, MCP SDK, rule-io-sdk, zod.
 
 This plan is the result of a deep, three-pronged exploration covering architecture, tests, and security. The codebase is **generally well-built** — MCP protocol compliance is solid, type safety is strong (zero `any`), error handling is consistent, and tool descriptions are excellent for LLM consumption. The issues below are the findings worth acting on.
 
@@ -18,11 +18,11 @@ This plan is the result of a deep, three-pronged exploration covering architectu
 | **P1** | ~~18/35 tools lack API error case tests~~ | Various test files | Done (PR #33) |
 | **P1** | No test coverage for resources or prompts | Missing files | Deferred |
 | **P2** | ~~3x `as unknown as` double casts for RCML templates~~ | `templates.ts`, `automations.ts`, `campaigns.ts` | Done (PR #33) |
-| **P2** | No Zod schema rejection tests at tool level | `_helpers.ts` bypasses Zod | Open |
-| **P2** | No coverage configuration in vitest | `vitest.config.ts` | Open |
-| **P3** | Fatal error logs full error object to stderr | `bin/rule-io-mcp.ts:5` | Open |
-| **P3** | Campaign/automation email creation code duplication | `campaigns.ts` + `automations.ts` | Open |
-| **P3** | No `.env.example` file | Project root | Open |
+| **P2** | ~~No Zod schema rejection tests at tool level~~ | `schemas.ts` + `schemas.test.ts` | Done (PR #38) |
+| **P2** | ~~No coverage configuration in vitest~~ | `vitest.config.ts` | Done (PR #37) |
+| **P3** | ~~Fatal error logs full error object to stderr~~ | `bin/rule-io-mcp.ts` | Done (PR #34) |
+| **P3** | Campaign/automation email creation code duplication | `campaigns.ts` + `automations.ts` | Deferred |
+| **P3** | ~~No `.env.example` file~~ | Project root | Done (PR #35) |
 
 ---
 
@@ -37,9 +37,9 @@ All Phase 1 items were implemented and merged:
 
 ---
 
-## Phase 2: Nice-to-Have — OPEN
+## Phase 2: Nice-to-Have — COMPLETED (PRs #34-38)
 
-These are improvements that make the codebase safer, more maintainable, and easier for new developers to work with. None are broken today, but each reduces a future risk.
+All actionable Phase 2 items were implemented and merged. Only 2B (code duplication) was deferred as low-priority.
 
 ---
 
@@ -76,7 +76,7 @@ if (error instanceof Error) {
 }
 ```
 
-- [ ] Change `bin/rule-io-mcp.ts:5` to log only `error.message` and `error.stack`
+- [x] Change `bin/rule-io-mcp.ts:5` to log only `error.message` and `error.stack` — Done (PR #34)
 
 ---
 
@@ -117,8 +117,8 @@ function resolveTemplateConfig(template, brand_style_id, sections) {
 
 **Trade-off:** The duplication is only ~20 lines, and the two handlers have different surrounding parameters (campaigns need `recipients`, automations need `trigger_tag`). Extracting might add complexity for minimal gain. This is a judgment call — it's fine to leave it as-is with a comment noting the parallel structure.
 
-- [ ] Consider extracting a shared helper like `resolveTemplateConfig()`
-- [ ] If not extracting, add a comment in both files noting the parallel structure (e.g., `// NOTE: similar logic exists in automations.ts — keep in sync`)
+- [ ] Consider extracting a shared helper like `resolveTemplateConfig()` — Deferred (low priority, ~20 lines duplication)
+- [ ] If not extracting, add a comment in both files noting the parallel structure — Deferred
 
 ---
 
@@ -171,9 +171,9 @@ export default defineConfig({
 
 Then run `npm run test:coverage` to see a report showing exactly which lines and branches are covered.
 
-- [ ] Install `@vitest/coverage-v8` as a dev dependency
-- [ ] Add coverage configuration to `vitest.config.ts`
-- [ ] Add `"test:coverage"` script to `package.json`
+- [x] Install `@vitest/coverage-v8` as a dev dependency — Done (PR #37)
+- [x] Add coverage configuration to `vitest.config.ts` — Done (PR #37)
+- [x] Add `"test:coverage"` script to `package.json` — Done (PR #37)
 
 ---
 
@@ -208,7 +208,7 @@ RULE_IO_API_KEY=your-api-key-here
 
 A new developer can then just run `cp .env.example .env` and fill in their API key.
 
-- [ ] Create `.env.example` with all 5 variables and helpful comments
+- [x] Create `.env.example` with all 5 variables and helpful comments — Done (PR #35)
 
 ---
 
@@ -247,7 +247,7 @@ describe('rule_create_subscriber schema', () => {
 
 **Note:** This is lower priority because Zod itself is well-tested, and the MCP SDK handles the validation layer. The risk is specifically that someone accidentally changes a schema — which is relatively unlikely but not impossible.
 
-- [ ] Consider adding `.safeParse()` tests for the most important tool schemas (subscriber creation, campaign email creation)
+- [x] Added `.safeParse()` tests for subscriber, subscriber tags, and campaign email schemas — Done (PR #38, 30+ schema tests)
 
 ---
 
@@ -270,7 +270,7 @@ These are areas where the codebase is solid — verify during review to confirm.
 ## How to Verify
 
 ```bash
-# Run tests — expect all 151 to pass
+# Run tests — expect all ~169 to pass
 npm test
 
 # Type check — expect zero errors
