@@ -2,7 +2,8 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
-import { sectionsSchema, buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { sectionsSchema } from '../util/content-blocks.js';
+import { applyTemplateConfig } from '../util/template-config.js';
 
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -89,16 +90,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
           sendoutType: sendout_type === 'marketing' ? 1 : 2,
         };
 
-        if (template) {
-          // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-          config.template = template as unknown as Parameters<typeof client.createAutomationEmail>[0]['template'];
-        } else {
-          config.brandStyleId = brand_style_id;
-          if (sections) {
-            // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-            config.sections = buildSectionsFromBlocks(sections) as Parameters<typeof client.createAutomationEmail>[0]['sections'];
-          }
-        }
+        applyTemplateConfig(config, { template, brand_style_id, sections });
 
         const result = await client.createAutomationEmail(config);
 
