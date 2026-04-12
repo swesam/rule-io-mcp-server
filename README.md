@@ -72,7 +72,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_delete_subscriber` | Delete a subscriber | `subscriber`, `identified_by?` |
 | `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `identified_by?`, `action`, `tags`, `trigger_automation?` |
 | `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[{ email?, phone_number? }]`, `trigger_automation?` |
-| `rule_set_subscriber_fields` | Set custom field data on a subscriber | `subscriber`, `identified_by?`, `fields` |
+| `rule_set_subscriber_fields` | Set custom field data on a subscriber | `subscriber_id`, `groups[{ group, values }]` |
 | `rule_block_subscribers` | Block or unblock multiple subscribers | `action`, `subscribers[]` |
 
 ### Automations
@@ -90,13 +90,13 @@ That's it. The server starts automatically when Claude needs it.
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
 | `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
-| `rule_create_campaign_email` | Create and attach an email to a campaign | `campaign_id`, `subject`, `template` or `brand_style_id` |
+| `rule_create_campaign_email` | Create a complete campaign with email in one step | `name`, `subject`, `tags` or `segments` or `subscribers`, `template` or `brand_style_id` |
 | `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
 | `rule_get_campaign` | Get campaign details by ID | `id` |
 | `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
 | `rule_delete_campaign` | Delete a campaign | `id` |
 | `rule_copy_campaign` | Duplicate an existing campaign | `id` |
-| `rule_list_segments` | List available segments for campaign targeting | _(none)_ |
+| `rule_list_segments` | List available segments for campaign targeting | `page?`, `per_page?` |
 | `rule_schedule_campaign` | Schedule, send, or cancel a campaign | `id`, `action`, `datetime?` |
 
 ### Templates

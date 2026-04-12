@@ -2,7 +2,7 @@
 
 ## Context
 
-A developer needs to code review this MCP server that wraps the Rule.io email marketing API. The codebase has **35 tools, 7 resources, 9 prompts**, and **~169 test cases** across 12 test files. Stack: TypeScript (strict), tsup, Vitest, MCP SDK, rule-io-sdk, zod.
+A developer needs to code review this MCP server that wraps the Rule.io email marketing API. The codebase has **35 tools, 7 resources, 9 prompts**, and **~190 test cases** across 13 test files. Stack: TypeScript (strict), tsup, Vitest, MCP SDK, rule-io-sdk, zod.
 
 This plan is the result of a deep, three-pronged exploration covering architecture, tests, and security. The codebase is **generally well-built** — MCP protocol compliance is solid, type safety is strong (zero `any`), error handling is consistent, and tool descriptions are excellent for LLM consumption. The issues below are the findings worth acting on.
 
