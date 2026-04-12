@@ -290,6 +290,18 @@ describe('resources', () => {
       const parsed = JSON.parse(result.contents[0].text);
       expect(parsed).toEqual({ error: 'Not found' });
     });
+
+    it('returns error content on API failure', async () => {
+      mocks.getCampaign.mockRejectedValue(new Error('Service unavailable'));
+
+      const result = await handlers['campaign'](
+        new URL('rule://campaigns/1'),
+        { id: '1' }
+      );
+
+      const parsed = JSON.parse(result.contents[0].text);
+      expect(parsed).toEqual({ error: 'Service unavailable' });
+    });
   });
 
   describe('template resource', () => {
@@ -328,6 +340,18 @@ describe('resources', () => {
 
       const parsed = JSON.parse(result.contents[0].text);
       expect(parsed).toEqual({ error: 'Not found' });
+    });
+
+    it('returns error content on API failure', async () => {
+      mocks.getTemplate.mockRejectedValue(new Error('Rate limited'));
+
+      const result = await handlers['template'](
+        new URL('rule://templates/1'),
+        { id: '1' }
+      );
+
+      const parsed = JSON.parse(result.contents[0].text);
+      expect(parsed).toEqual({ error: 'Rate limited' });
     });
   });
 
