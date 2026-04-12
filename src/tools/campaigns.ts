@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
-import { buildSectionsFromBlocks } from '../util/content-blocks.js';
+import { applyTemplateConfig } from '../util/template-config.js';
 import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
@@ -152,16 +152,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           subscribers: validated.subscribers,
         };
 
-        if (validated.template) {
-          // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-          config.template = validated.template as unknown as Parameters<typeof client.createCampaignEmail>[0]['template'];
-        } else {
-          config.brandStyleId = validated.brand_style_id;
-          if (validated.sections) {
-            // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-            config.sections = buildSectionsFromBlocks(validated.sections) as Parameters<typeof client.createCampaignEmail>[0]['sections'];
-          }
-        }
+        applyTemplateConfig(config, validated);
 
         const result = await client.createCampaignEmail(config);
 
