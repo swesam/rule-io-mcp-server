@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { errorResult, handleRuleError, jsonResult } from '../util/errors.js';
+import { handleRuleError, jsonResult } from '../util/errors.js';
 
 const OBJECT_TYPES = [
   'AB_TEST',
@@ -40,30 +40,21 @@ function normaliseDateTo(date: string): string {
 export function registerAnalyticsTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_get_analytics',
-    'Get email or text-message performance metrics. Call with just date_from and date_to for an account-wide summary (returns totals for all sends in the period — no object IDs needed). For a per-object breakdown, also provide object_type + object_ids + metrics (all three required together). Use rule_list_campaigns (object_type CAMPAIGN) or rule_list_automations (object_type AUTOMAIL) to find IDs first.',
+    'Get per-object email or text-message performance metrics. Requires object_type + object_ids + metrics to specify what to query. Use rule_list_campaigns (object_type CAMPAIGN) or rule_list_automations (object_type AUTOMAIL) to find IDs first. For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead.',
     {
       date_from: z.string().describe('Start date (YYYY-MM-DD)'),
       date_to: z.string().describe('End date (YYYY-MM-DD)'),
       object_type: z
         .enum(OBJECT_TYPES)
-        .optional()
-        .describe(
-          'Type of object to query. Required together with object_ids and metrics.',
-        ),
+        .describe('Type of object to query'),
       object_ids: z
         .array(z.string())
         .min(1)
-        .optional()
-        .describe(
-          'IDs of the objects to query (as strings). Required together with object_type and metrics.',
-        ),
+        .describe('IDs of the objects to query (as strings)'),
       metrics: z
         .array(z.enum(METRICS))
         .min(1)
-        .optional()
-        .describe(
-          'Metrics to retrieve. Required together with object_type and object_ids.',
-        ),
+        .describe('Metrics to retrieve'),
       message_type: z
         .enum(MESSAGE_TYPES)
         .optional()
@@ -71,25 +62,14 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
     },
     async ({ date_from, date_to, object_type, object_ids, metrics, message_type }) => {
       try {
-        const hasObjectType = object_type !== undefined;
-        const hasObjectIds = object_ids !== undefined;
-        const hasMetrics = metrics !== undefined;
-        if ((hasObjectType || hasObjectIds || hasMetrics) && !(hasObjectType && hasObjectIds && hasMetrics)) {
-          return errorResult(
-            'object_type, object_ids, and metrics must all be provided together. You cannot provide only a subset.',
-          );
-        }
-        const result =
-          object_type && object_ids && metrics
-            ? await client.getAnalytics({
-                date_from,
-                date_to,
-                object_type,
-                object_ids,
-                metrics: [...metrics],
-                message_type,
-              })
-            : await client.getAnalytics({ date_from, date_to, message_type });
+        const result = await client.getAnalytics({
+          date_from,
+          date_to,
+          object_type,
+          object_ids,
+          metrics: [...metrics],
+          message_type,
+        });
         return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);
