@@ -40,7 +40,7 @@ function normaliseDateTo(date: string): string {
 export function registerAnalyticsTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_get_analytics',
-    'Get per-object email or text-message performance metrics. Requires object_type + object_ids + metrics to specify what to query. Use rule_list_campaigns (object_type CAMPAIGN) or rule_list_automations (object_type AUTOMAIL) to find IDs first. For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead.',
+    'Get per-object email or text-message performance metrics. Requires object_type + object_ids + metrics to specify what to query. Set object_type to CAMPAIGN or AUTOMAIL as appropriate, and use rule_list_campaigns or rule_list_automations to find IDs first. For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead.',
     {
       date_from: z.string().describe('Start date (YYYY-MM-DD)'),
       date_to: z.string().describe('End date (YYYY-MM-DD)'),
