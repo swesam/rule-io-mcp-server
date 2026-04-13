@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { RuleApiError } from 'rule-io-sdk';
+import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 import {
   handleRuleError,
   jsonResult,
@@ -54,6 +54,17 @@ describe('handleRuleError', () => {
     expect(result.content[0]).toEqual({
       type: 'text',
       text: 'Rule.io API error (500): Internal Server Error',
+    });
+  });
+
+  it('returns config error message for RuleConfigError', () => {
+    const error = new RuleConfigError('Invalid URL: javascript: URLs are not allowed');
+    const result = handleRuleError(error);
+
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toEqual({
+      type: 'text',
+      text: 'Configuration error: Invalid URL: javascript: URLs are not allowed',
     });
   });
 
