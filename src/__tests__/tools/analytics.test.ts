@@ -92,6 +92,9 @@ describe('analytics tools', () => {
       });
 
       expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('object_type');
+      expect(result.content[0].text).toContain('object_ids');
+      expect(result.content[0].text).toContain('metrics');
       expect(mocks.getAnalytics).not.toHaveBeenCalled();
     });
 
