@@ -1,4 +1,4 @@
-import type { RCMLDocument, RCMLSection, RCMLLoop, RCMLSwitch } from 'rule-io-sdk';
+import type { RCMLDocument, RCMLBodyChild } from 'rule-io-sdk';
 import { buildSectionsFromBlocks, type ContentBlock } from './content-blocks.js';
 
 // ---------------------------------------------------------------------------
@@ -15,7 +15,7 @@ import { buildSectionsFromBlocks, type ContentBlock } from './content-blocks.js'
 interface TemplateConfigTarget {
   template?: RCMLDocument;
   brandStyleId?: number;
-  sections?: (RCMLSection | RCMLLoop | RCMLSwitch)[];
+  sections?: RCMLBodyChild[];
 }
 
 /**
@@ -50,7 +50,7 @@ export function applyTemplateConfig(
     config.brandStyleId = input.brand_style_id;
     if (input.sections) {
       // Cast: Zod accepts loose JSON for RCML; structural validation deferred to Rule.io API
-      config.sections = buildSectionsFromBlocks(input.sections) as (RCMLSection | RCMLLoop | RCMLSwitch)[];
+      config.sections = buildSectionsFromBlocks(input.sections) as RCMLBodyChild[];
     }
   }
 }

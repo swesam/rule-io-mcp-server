@@ -1,4 +1,4 @@
-import { RuleApiError } from 'rule-io-sdk';
+import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 export function handleRuleError(error: unknown): CallToolResult {
@@ -47,6 +47,18 @@ export function handleRuleError(error: unknown): CallToolResult {
         {
           type: 'text',
           text: `Rule.io API error (${error.statusCode}): ${error.message}`,
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  if (error instanceof RuleConfigError) {
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Configuration error: ${error.message}`,
         },
       ],
       isError: true,
