@@ -113,7 +113,7 @@ That's it. The server starts automatically when Claude needs it.
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
-| `rule_get_analytics` | Get per-object performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type`, `object_ids`, `metrics` |
+| `rule_get_analytics` | Get performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type?`, `object_ids?`, `metrics?` |
 | `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to`, `next_page_token?` |
 
 ### Admin
@@ -231,11 +231,11 @@ The AI calls **`rule_get_analytics`** with the campaign ID and date range:
 {
   "date_from": "2025-06-01",
   "date_to": "2025-06-07",
-  "object_type": "CAMPAIGN",
+  "object_type": "campaign",
   "object_ids": ["12345"],
-  "metrics": ["open_uniq", "click_uniq", "total_bounce", "unsubscribe"]
+  "metrics": ["opens", "clicks", "bounces", "unsubscribes"]
 }
-// → { data: [{ id: "12345", metrics: [{ metric: "open_uniq", value: 1240 }, ...] }] }
+// → { "opens": 1240, "clicks": 312, "bounces": 8, "unsubscribes": 3 }
 ```
 
 ### Create a brand style from a website

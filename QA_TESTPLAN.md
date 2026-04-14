@@ -76,13 +76,9 @@ This is the big test — it creates 4 resources in one call. Use a brand style I
 ---
 
 ## Step 9: Analytics
-> **Prompt:** "How did my campaigns perform over the last 30 days? Show me opens and clicks."
+> **Prompt:** "How did my emails perform over the last 30 days? Give me an overall summary."
 
-**What to look for:** `rule_get_analytics` with `object_type`, `object_ids`, and `metrics`. Claude should first call `rule_list_campaigns` to find campaign IDs, then call `rule_get_analytics` with those IDs.
-
-> **Prompt (account-wide):** "Export my email statistics for the last 30 days"
-
-**What to look for:** `rule_export_data` with type `statistics` and a 30-day date range. This is the correct tool for account-wide summaries (no object IDs needed).
+**What to look for:** `rule_get_analytics` in summary mode with `date_from` and `date_to` only.
 
 ---
 

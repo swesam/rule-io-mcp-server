@@ -489,19 +489,28 @@ With subscriber merge tags:
 
 #### rule_get_analytics
 
-All three object params are required (`object_type`, `object_ids`, `metrics`). For account-wide summaries without object IDs, use `rule_export_data` with type `statistics` instead.
+Basic date range:
+
+```json
+{
+  "date_from": "2025-01-01",
+  "date_to": "2025-01-31"
+}
+```
+
+With filters:
 
 ```json
 {
   "date_from": "2025-01-01",
   "date_to": "2025-01-31",
-  "object_type": "CAMPAIGN",
+  "object_type": "campaign",
   "object_ids": ["12345"],
-  "metrics": ["open", "click", "total_bounce"]
+  "metrics": ["opens", "clicks", "bounces"]
 }
 ```
 
-**Verify**: Returns analytics data for the specified objects and metrics.
+**Verify**: Returns analytics data for the specified range and filters.
 
 #### rule_export_data
 
