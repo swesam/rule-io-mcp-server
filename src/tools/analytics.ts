@@ -62,9 +62,9 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
     },
     async ({ date_from, date_to, object_type, object_ids, metrics, message_type }) => {
       try {
-        if (!object_type || !object_ids || !metrics) {
+        if (!object_type || !object_ids?.length || !metrics?.length) {
           return errorResult(
-            'object_type, object_ids, and metrics are all required. For account-wide summaries use rule_export_data with type "statistics".',
+            'object_type, object_ids (non-empty), and metrics (non-empty) are all required. For account-wide summaries use rule_export_data with type "statistics".',
           );
         }
         const result = await client.getAnalytics({

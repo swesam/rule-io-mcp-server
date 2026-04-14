@@ -98,6 +98,20 @@ describe('analytics tools', () => {
       expect(mocks.getAnalytics).not.toHaveBeenCalled();
     });
 
+    it('returns error when object_ids or metrics are empty arrays', async () => {
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: [],
+        metrics: [],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('non-empty');
+      expect(mocks.getAnalytics).not.toHaveBeenCalled();
+    });
+
     it('returns error on API failure', async () => {
       mocks.getAnalytics.mockRejectedValue(new RuleApiError('Server Error', 500));
 
