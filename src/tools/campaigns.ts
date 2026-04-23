@@ -1,10 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { formatRuleErrorMessage, handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
+import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { applyTemplateConfig } from '../util/template-config.js';
 import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
-import { METRICS, MESSAGE_TYPES, normaliseDateFrom, normaliseDateTo } from './analytics.js';
+import { fetchAnalyticsFor, includeAnalyticsSchema } from './analytics.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -54,23 +54,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
     'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged.',
     {
       id: z.number().describe('Campaign ID'),
-      include_analytics: z
-        .object({
-          date_from: z
-            .string()
-            .describe('Start date — YYYY-MM-DD (auto-expanded to 00:00:00) or YYYY-MM-DD HH:mm:ss'),
-          date_to: z
-            .string()
-            .describe('End date — YYYY-MM-DD (auto-expanded to 23:59:59) or YYYY-MM-DD HH:mm:ss'),
-          metrics: z
-            .array(z.enum(METRICS))
-            .min(1)
-            .describe('Metrics to retrieve'),
-          message_type: z
-            .enum(MESSAGE_TYPES)
-            .optional()
-            .describe('Filter by message type (email or text_message)'),
-        })
+      include_analytics: includeAnalyticsSchema
         .optional()
         .describe('Optionally fetch analytics for the campaign'),
     },
@@ -80,37 +64,11 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         if (!result) {
           return textResult(`Campaign ${id} not found.`);
         }
-
-        // If include_analytics is provided, fetch and merge analytics
-        if (include_analytics) {
-          try {
-            const analytics = await client.getAnalytics({
-              date_from: normaliseDateFrom(include_analytics.date_from),
-              date_to: normaliseDateTo(include_analytics.date_to),
-              object_type: 'CAMPAIGN',
-              object_ids: [String(id)],
-              metrics: include_analytics.metrics,
-              message_type: include_analytics.message_type,
-            });
-            return jsonResult({
-              ...result,
-              analytics: analytics.data?.[0]?.metrics ?? [],
-            });
-          } catch (analyticsError) {
-            // Analytics is additive context; don't fail the whole call.
-            // Sanitise via formatRuleErrorMessage so auth/rate-limit/validation
-            // errors surface the same user-oriented text as handleRuleError.
-            // Always include analytics: [] so the response shape stays
-            // consistent for callers that requested analytics.
-            return jsonResult({
-              ...result,
-              analytics: [],
-              analytics_error: formatRuleErrorMessage(analyticsError),
-            });
-          }
+        if (!include_analytics) {
+          return jsonResult(result);
         }
-
-        return jsonResult(result);
+        const merge = await fetchAnalyticsFor(client, 'CAMPAIGN', id, include_analytics);
+        return jsonResult({ ...result, ...merge });
       } catch (error) {
         return handleRuleError(error);
       }
