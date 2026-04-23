@@ -72,8 +72,8 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
     if (!result.data || result.data.length === 0) break;
 
     for (const dispatcher of result.data) {
+      if (dispatcher.id == null) continue;
       scanned += 1;
-      if (!dispatcher.id) continue;
 
       try {
         const messages = await client.listMessages({
@@ -83,7 +83,7 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
         if (!messages.data || messages.data.length === 0) continue;
 
         for (const message of messages.data) {
-          if (!message.id) continue;
+          if (message.id == null) continue;
           try {
             const resolvedTemplateId = await resolveTemplateIdForMessage(client, message.id);
             if (resolvedTemplateId === templateId) {

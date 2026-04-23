@@ -384,11 +384,10 @@ describe('template tools', () => {
         ],
       });
 
-      // First campaign's listMessages call fails
+      // First campaign's listMessages call fails; second campaign succeeds.
       mocks.listMessages
         .mockRejectedValueOnce(new RuleApiError('Error', 500))
-        .mockResolvedValueOnce({ data: [{ id: 11, subject: 'E2' }] })
-        .mockResolvedValueOnce({ data: [] });
+        .mockResolvedValueOnce({ data: [{ id: 11, subject: 'E2' }] });
 
       mocks.listDynamicSets.mockResolvedValueOnce({ data: [{ template_id: 42 }] });
 
@@ -403,6 +402,7 @@ describe('template tools', () => {
       expect(parsed.partial_errors).toBeDefined();
       expect(parsed.partial_errors[0].kind).toBe('campaign');
       expect(parsed.partial_errors[0].id).toBe(1);
+      expect(mocks.listMessages).toHaveBeenCalledTimes(2);
     });
   });
 });
