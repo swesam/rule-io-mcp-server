@@ -37,6 +37,7 @@ const EXPECTED_TOOLS = [
   'rule_render_template',
   'rule_get_template',
   'rule_delete_template',
+  'rule_find_template_usage',
   // automations
   'rule_create_automation_email',
   'rule_list_automations',

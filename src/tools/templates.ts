@@ -3,6 +3,16 @@ import { z } from 'zod';
 import { RuleApiError, type RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
 
+// Helper: resolve template_id for a message by checking its dynamic sets
+async function resolveTemplateIdForMessage(client: RuleClient, messageId: number): Promise<number | null> {
+  const dynamicSets = await client.listDynamicSets({ message_id: messageId });
+  if (dynamicSets.data && dynamicSets.data.length > 0) {
+    // Return the first template_id found
+    return dynamicSets.data[0].template_id ?? null;
+  }
+  return null;
+}
+
 export function registerTemplateTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_create_template',
@@ -113,6 +123,154 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
     async ({ id }) => {
       try {
         const result = await client.deleteTemplate(id);
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
+    'rule_find_template_usage',
+    'Find campaigns and automations that use a given template. Expensive on large accounts — fetches all campaigns and automations, then resolves their messages. Consider caching.',
+    {
+      id: z.number().describe('Template ID'),
+    },
+    async ({ id }) => {
+      try {
+        const campaigns: Array<{ id: number; name: string; subject?: string; status?: string; action_time?: string }> = [];
+        const automations: Array<{ id: number; name: string; active?: boolean; trigger_type?: string }> = [];
+        const partialErrors: Array<{ kind: 'campaign' | 'automation'; id: number; error: string }> = [];
+
+        let campaignsScanned = 0;
+        let automationsScanned = 0;
+
+        // List all campaigns with pagination
+        let campaignPage = 1;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const campaignList = await client.listCampaigns({ page: campaignPage, per_page: 100 });
+          if (!campaignList.data || campaignList.data.length === 0) break;
+
+          for (const campaign of campaignList.data) {
+            campaignsScanned += 1;
+            if (!campaign.id) continue;
+
+            try {
+              // List messages for this campaign
+              const messages = await client.listMessages({
+                id: campaign.id,
+                dispatcher_type: 'campaign',
+              });
+
+              if (messages.data && messages.data.length > 0) {
+                for (const message of messages.data) {
+                  if (!message.id) continue;
+
+                  try {
+                    const templateId = await resolveTemplateIdForMessage(client, message.id);
+                    if (templateId === id) {
+                      campaigns.push({
+                        id: campaign.id,
+                        name: campaign.name,
+                        subject: message.subject,
+                        status: campaign.status?.toString(),
+                      });
+                      break; // Found the template for this campaign, no need to check other messages
+                    }
+                  } catch (error) {
+                    partialErrors.push({
+                      kind: 'campaign',
+                      id: campaign.id,
+                      error: `Failed to resolve message ${message.id}: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                  }
+                }
+              }
+            } catch (error) {
+              partialErrors.push({
+                kind: 'campaign',
+                id: campaign.id,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
+
+          // Check if there are more pages
+          if (!campaignList.data || campaignList.data.length < 100) break;
+          campaignPage += 1;
+        }
+
+        // List all automations with pagination
+        let automationPage = 1;
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+          const automationList = await client.listAutomations({ page: automationPage, per_page: 100 });
+          if (!automationList.data || automationList.data.length === 0) break;
+
+          for (const automation of automationList.data) {
+            automationsScanned += 1;
+            if (!automation.id) continue;
+
+            try {
+              // List messages for this automation (dispatcher_type is 'automail')
+              const messages = await client.listMessages({
+                id: automation.id,
+                dispatcher_type: 'automail',
+              });
+
+              if (messages.data && messages.data.length > 0) {
+                for (const message of messages.data) {
+                  if (!message.id) continue;
+
+                  try {
+                    const templateId = await resolveTemplateIdForMessage(client, message.id);
+                    if (templateId === id) {
+                      automations.push({
+                        id: automation.id,
+                        name: automation.name,
+                        active: automation.active,
+                        trigger_type: automation.trigger?.type,
+                      });
+                      break; // Found the template for this automation, no need to check other messages
+                    }
+                  } catch (error) {
+                    partialErrors.push({
+                      kind: 'automation',
+                      id: automation.id,
+                      error: `Failed to resolve message ${message.id}: ${error instanceof Error ? error.message : String(error)}`,
+                    });
+                  }
+                }
+              }
+            } catch (error) {
+              partialErrors.push({
+                kind: 'automation',
+                id: automation.id,
+                error: error instanceof Error ? error.message : String(error),
+              });
+            }
+          }
+
+          // Check if there are more pages
+          if (!automationList.data || automationList.data.length < 100) break;
+          automationPage += 1;
+        }
+
+        const result: Record<string, unknown> = {
+          template_id: id,
+          campaigns,
+          automations,
+          scanned: {
+            campaigns: campaignsScanned,
+            automations: automationsScanned,
+          },
+        };
+
+        if (partialErrors.length > 0) {
+          result.partial_errors = partialErrors;
+        }
+
         return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);
