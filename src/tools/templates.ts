@@ -3,14 +3,116 @@ import { z } from 'zod';
 import { RuleApiError, type RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
 
-// Helper: resolve template_id for a message by checking its dynamic sets
+// Helper: resolve template_id for a message by checking its dynamic sets.
+// Scans every dynamic set returned for the message and returns the first
+// one that carries a non-null template_id, since earlier entries can have
+// template_id undefined while later entries carry the real value.
 async function resolveTemplateIdForMessage(client: RuleClient, messageId: number): Promise<number | null> {
   const dynamicSets = await client.listDynamicSets({ message_id: messageId });
-  if (dynamicSets.data && dynamicSets.data.length > 0) {
-    // Return the first template_id found
-    return dynamicSets.data[0].template_id ?? null;
+  if (!dynamicSets.data || dynamicSets.data.length === 0) {
+    return null;
+  }
+  for (const dynamicSet of dynamicSets.data) {
+    if (dynamicSet.template_id != null) {
+      return dynamicSet.template_id;
+    }
   }
   return null;
+}
+
+type UsageKind = 'campaign' | 'automation';
+
+interface DispatcherLike {
+  id?: number;
+}
+
+interface MessageLike {
+  id?: number;
+  subject?: string;
+}
+
+interface PartialError {
+  kind: UsageKind;
+  id: number;
+  message_id?: number;
+  error: string;
+}
+
+interface ScanDispatchersOptions<D extends DispatcherLike, R> {
+  kind: UsageKind;
+  templateId: number;
+  /** Fetch one page of dispatchers (1-indexed). Returns `{ data }` shape. */
+  listPage: (page: number, perPage: number) => Promise<{ data?: D[] }>;
+  /** Value passed as `dispatcher_type` when listing messages for each item. */
+  dispatcherType: 'campaign' | 'automail';
+  /** Project the dispatcher + matching message into the usage-result item. */
+  toResult: (dispatcher: D, message: MessageLike) => R;
+}
+
+/**
+ * Paginate `listPage` and, for each dispatcher, resolve whether any of its
+ * messages reference `templateId`. Returns the matching result items and
+ * the number of dispatchers scanned; per-item failures are appended to the
+ * shared `partialErrors` array rather than aborting the scan.
+ */
+async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
+  client: RuleClient,
+  options: ScanDispatchersOptions<D, R>,
+  partialErrors: PartialError[],
+): Promise<{ matches: R[]; scanned: number }> {
+  const { kind, templateId, listPage, dispatcherType, toResult } = options;
+  const PER_PAGE = 100;
+
+  const matches: R[] = [];
+  let scanned = 0;
+  let page = 1;
+
+  while (true) {
+    const result = await listPage(page, PER_PAGE);
+    if (!result.data || result.data.length === 0) break;
+
+    for (const dispatcher of result.data) {
+      scanned += 1;
+      if (!dispatcher.id) continue;
+
+      try {
+        const messages = await client.listMessages({
+          id: dispatcher.id,
+          dispatcher_type: dispatcherType,
+        });
+        if (!messages.data || messages.data.length === 0) continue;
+
+        for (const message of messages.data) {
+          if (!message.id) continue;
+          try {
+            const resolvedTemplateId = await resolveTemplateIdForMessage(client, message.id);
+            if (resolvedTemplateId === templateId) {
+              matches.push(toResult(dispatcher, message));
+              break; // stop at first matching message for this dispatcher
+            }
+          } catch (error) {
+            partialErrors.push({
+              kind,
+              id: dispatcher.id,
+              message_id: message.id,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
+      } catch (error) {
+        partialErrors.push({
+          kind,
+          id: dispatcher.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+    }
+
+    if (result.data.length < PER_PAGE) break;
+    page += 1;
+  }
+
+  return { matches, scanned };
 }
 
 export function registerTemplateTools(server: McpServer, client: RuleClient): void {
@@ -138,131 +240,41 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
     },
     async ({ id }) => {
       try {
-        const campaigns: Array<{ id: number; name: string; subject?: string; status?: string }> = [];
-        const automations: Array<{ id: number; name: string; active?: boolean; trigger_type?: string }> = [];
-        const partialErrors: Array<{
-          kind: 'campaign' | 'automation';
-          id: number;
-          message_id?: number;
-          error: string;
-        }> = [];
+        const partialErrors: PartialError[] = [];
 
-        let campaignsScanned = 0;
-        let automationsScanned = 0;
+        const { matches: campaigns, scanned: campaignsScanned } = await scanDispatchersForTemplate(
+          client,
+          {
+            kind: 'campaign',
+            templateId: id,
+            listPage: (page, per_page) => client.listCampaigns({ page, per_page }),
+            dispatcherType: 'campaign',
+            toResult: (campaign, message) => ({
+              id: campaign.id as number,
+              name: campaign.name,
+              subject: message.subject,
+              status: campaign.status?.toString(),
+            }),
+          },
+          partialErrors,
+        );
 
-        // List all campaigns with pagination
-        let campaignPage = 1;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const campaignList = await client.listCampaigns({ page: campaignPage, per_page: 100 });
-          if (!campaignList.data || campaignList.data.length === 0) break;
-
-          for (const campaign of campaignList.data) {
-            campaignsScanned += 1;
-            if (!campaign.id) continue;
-
-            try {
-              // List messages for this campaign
-              const messages = await client.listMessages({
-                id: campaign.id,
-                dispatcher_type: 'campaign',
-              });
-
-              if (messages.data && messages.data.length > 0) {
-                for (const message of messages.data) {
-                  if (!message.id) continue;
-
-                  try {
-                    const templateId = await resolveTemplateIdForMessage(client, message.id);
-                    if (templateId === id) {
-                      campaigns.push({
-                        id: campaign.id,
-                        name: campaign.name,
-                        subject: message.subject,
-                        status: campaign.status?.toString(),
-                      });
-                      break; // Found the template for this campaign, no need to check other messages
-                    }
-                  } catch (error) {
-                    partialErrors.push({
-                      kind: 'campaign',
-                      id: campaign.id,
-                      message_id: message.id,
-                      error: error instanceof Error ? error.message : String(error),
-                    });
-                  }
-                }
-              }
-            } catch (error) {
-              partialErrors.push({
-                kind: 'campaign',
-                id: campaign.id,
-                error: error instanceof Error ? error.message : String(error),
-              });
-            }
-          }
-
-          // Check if there are more pages
-          if (!campaignList.data || campaignList.data.length < 100) break;
-          campaignPage += 1;
-        }
-
-        // List all automations with pagination
-        let automationPage = 1;
-        // eslint-disable-next-line no-constant-condition
-        while (true) {
-          const automationList = await client.listAutomations({ page: automationPage, per_page: 100 });
-          if (!automationList.data || automationList.data.length === 0) break;
-
-          for (const automation of automationList.data) {
-            automationsScanned += 1;
-            if (!automation.id) continue;
-
-            try {
-              // List messages for this automation (dispatcher_type is 'automail')
-              const messages = await client.listMessages({
-                id: automation.id,
-                dispatcher_type: 'automail',
-              });
-
-              if (messages.data && messages.data.length > 0) {
-                for (const message of messages.data) {
-                  if (!message.id) continue;
-
-                  try {
-                    const templateId = await resolveTemplateIdForMessage(client, message.id);
-                    if (templateId === id) {
-                      automations.push({
-                        id: automation.id,
-                        name: automation.name,
-                        active: automation.active,
-                        trigger_type: automation.trigger?.type,
-                      });
-                      break; // Found the template for this automation, no need to check other messages
-                    }
-                  } catch (error) {
-                    partialErrors.push({
-                      kind: 'automation',
-                      id: automation.id,
-                      message_id: message.id,
-                      error: error instanceof Error ? error.message : String(error),
-                    });
-                  }
-                }
-              }
-            } catch (error) {
-              partialErrors.push({
-                kind: 'automation',
-                id: automation.id,
-                error: error instanceof Error ? error.message : String(error),
-              });
-            }
-          }
-
-          // Check if there are more pages
-          if (!automationList.data || automationList.data.length < 100) break;
-          automationPage += 1;
-        }
+        const { matches: automations, scanned: automationsScanned } = await scanDispatchersForTemplate(
+          client,
+          {
+            kind: 'automation',
+            templateId: id,
+            listPage: (page, per_page) => client.listAutomations({ page, per_page }),
+            dispatcherType: 'automail',
+            toResult: (automation) => ({
+              id: automation.id as number,
+              name: automation.name,
+              active: automation.active,
+              trigger_type: automation.trigger?.type,
+            }),
+          },
+          partialErrors,
+        );
 
         const result: Record<string, unknown> = {
           template_id: id,
