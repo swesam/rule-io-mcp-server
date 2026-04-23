@@ -251,6 +251,42 @@ The AI calls **`rule_manage_brand_style`** with **`action: create_from_domain`**
 
 ---
 
+## Known upstream limitations
+
+These are Rule.io API behaviours we cannot fix from the MCP layer. Workarounds below are what we recommend today.
+
+### Filtering `rule_list_campaigns`
+
+The Rule.io API does not accept a `status` filter on `GET /v2/campaigns`. `rule_list_campaigns` returns everything (drafts, scheduled, sent). Filter client-side on the campaign `status` field — the SDK types it as `{ value, key, description }` (so match on `status.key === "sent"` etc.), but some responses surface it as a plain string. Handle both.
+
+The campaign `subject` also lives on the message resource, not the campaign itself — the list response includes `name` but not `subject`. This MCP server does not currently expose a message-get tool, so if campaigns in your account are often unnamed, retrieve the subject from the Rule.io UI or the Rule.io API directly until we add one.
+
+### Segment metadata
+
+`rule_list_segments` returns `id` and `name` only — no member count, no creation timestamp. To detect dead segments today, use `rule_export_data` with `type: "subscribers"` and join on tag / segment membership client-side.
+
+### Dispatcher exports limited to 1 day
+
+`rule_export_data` with `type: "dispatchers"` accepts at most a 1-day range per call. For multi-week frequency or fatigue analysis, call iteratively per day and aggregate.
+
+### Market / brand attribution
+
+Rule.io has no native `market` / `country` / `brand` attribute on campaigns, automations, segments, or tags. Multi-market accounts typically encode market into a name prefix (e.g. `SE-`, `DK-`, `FI-`) and parse it client-side.
+
+### SMS analytics: `click_uniq` ≈ `open_uniq`
+
+SMS has no native "open" event. For `text_message` campaigns, the Rule.io platform may report `click_uniq` and `open_uniq` as identical. Treat SMS open metrics with caution until Rule.io documents the exact behaviour.
+
+### Read-only deployments
+
+Rule.io API keys do not currently carry a read-only scope. If you want to run this MCP server in a read-only posture (phase-1 AI rollouts, audit integrations), enforce it at the tool layer — filter the tool list in your own wrapper, or run a fork that omits the write tools. Contributions welcome (e.g. a `READ_ONLY=true` env flag).
+
+### Rate limits
+
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. If you call this server from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
+
+---
+
 ## Development
 
 ```bash
