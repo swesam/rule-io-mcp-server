@@ -1,7 +1,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
-import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
+import { formatRuleErrorMessage, handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { applyTemplateConfig } from '../util/template-config.js';
 import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
 import { METRICS, MESSAGE_TYPES, normaliseDateFrom, normaliseDateTo } from './analytics.js';
@@ -97,11 +97,12 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
               analytics: analytics.data?.[0]?.metrics ?? [],
             });
           } catch (analyticsError) {
-            // Analytics is additive context; don't fail the whole call
-            const errorMsg = analyticsError instanceof Error ? analyticsError.message : 'Unknown error';
+            // Analytics is additive context; don't fail the whole call.
+            // Sanitise via formatRuleErrorMessage so auth/rate-limit/validation
+            // errors surface the same user-oriented text as handleRuleError.
             return jsonResult({
               ...result,
-              analytics_error: errorMsg,
+              analytics_error: formatRuleErrorMessage(analyticsError),
             });
           }
         }

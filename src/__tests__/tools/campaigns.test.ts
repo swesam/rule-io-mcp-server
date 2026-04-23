@@ -241,7 +241,29 @@ describe('campaign tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         ...campaign,
-        analytics_error: 'Analytics unavailable',
+        analytics_error: 'Unexpected error: Analytics unavailable',
+      });
+    });
+
+    it('sanitises RuleApiError into the same message handleRuleError would emit', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
+      mocks.getCampaign.mockResolvedValue(campaign);
+      mocks.getAnalytics.mockRejectedValue(new RuleApiError('Unauthorized', 401));
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...campaign,
+        analytics_error: 'Authentication failed. Check your RULE_IO_API_KEY environment variable.',
       });
     });
 

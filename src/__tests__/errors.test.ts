@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 import {
+  formatRuleErrorMessage,
   handleRuleError,
   jsonResult,
   textResult,
@@ -117,5 +118,39 @@ describe('errorResult', () => {
 
     expect(result.isError).toBe(true);
     expect(result.content).toEqual([{ type: 'text', text: 'something failed' }]);
+  });
+});
+
+describe('formatRuleErrorMessage', () => {
+  it('returns the auth message for 401 RuleApiError', () => {
+    expect(formatRuleErrorMessage(new RuleApiError('Unauthorized', 401))).toBe(
+      'Authentication failed. Check your RULE_IO_API_KEY environment variable.',
+    );
+  });
+
+  it('returns the rate-limit message for 429 RuleApiError', () => {
+    expect(formatRuleErrorMessage(new RuleApiError('Too Many Requests', 429))).toBe(
+      'Rate limited by Rule.io API. Please wait a moment and retry.',
+    );
+  });
+
+  it('returns the generic API-error message for other RuleApiError codes', () => {
+    expect(formatRuleErrorMessage(new RuleApiError('Server Error', 500))).toBe(
+      'Rule.io API error (500): Server Error',
+    );
+  });
+
+  it('returns the config-error message for RuleConfigError', () => {
+    expect(formatRuleErrorMessage(new RuleConfigError('missing api key'))).toBe(
+      'Configuration error: missing api key',
+    );
+  });
+
+  it('returns the unexpected-error message for plain Error', () => {
+    expect(formatRuleErrorMessage(new Error('boom'))).toBe('Unexpected error: boom');
+  });
+
+  it('stringifies non-Error values', () => {
+    expect(formatRuleErrorMessage('a string')).toBe('Unexpected error: a string');
   });
 });

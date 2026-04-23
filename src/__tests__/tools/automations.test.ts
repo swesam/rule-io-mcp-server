@@ -341,7 +341,29 @@ describe('automation tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         ...automation,
-        analytics_error: 'Analytics unavailable',
+        analytics_error: 'Unexpected error: Analytics unavailable',
+      });
+    });
+
+    it('sanitises RuleApiError into the same message handleRuleError would emit', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockRejectedValue(new RuleApiError('Too many requests', 429));
+
+      const result = await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...automation,
+        analytics_error: 'Rate limited by Rule.io API. Please wait a moment and retry.',
       });
     });
 
