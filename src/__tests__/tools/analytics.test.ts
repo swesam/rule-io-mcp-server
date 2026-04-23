@@ -1,9 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RuleClient } from 'rule-io-sdk';
 import { RuleApiError } from 'rule-io-sdk';
 import { registerAnalyticsTools } from '../../tools/analytics.js';
-import { type ToolHandler, registerAndCapture } from './_helpers.js';
+import { type ToolHandler, registerAndCapture, registerAndCaptureMeta } from './_helpers.js';
 
 interface MockClient {
   getAnalytics: ReturnType<typeof vi.fn>;
@@ -34,25 +33,15 @@ describe('analytics tools', () => {
 
   describe('tool descriptions', () => {
     it('rule_get_analytics description lists every valid object_type from the schema', () => {
-      const server = new McpServer({ name: 'test', version: '0.0.1' });
-      const toolSpy = vi.spyOn(server, 'tool');
-      registerAnalyticsTools(server, mocks.asClient);
+      const registrations = registerAndCaptureMeta(registerAnalyticsTools, mocks.asClient);
+      const tool = registrations['rule_get_analytics'];
+      expect(tool).toBeTruthy();
 
-      const toolCall = toolSpy.mock.calls.find((call) => call[0] === 'rule_get_analytics');
-      expect(toolCall).toBeTruthy();
-      if (!toolCall) return;
+      const objectTypeSchema = tool.inputSchema.object_type as { options: readonly string[] };
+      expect(objectTypeSchema.options.length).toBeGreaterThan(0);
 
-      const description = toolCall[1];
-      const inputSchema = toolCall[2] as unknown as {
-        object_type: { options: readonly string[] };
-      };
-
-      expect(typeof description).toBe('string');
-      const objectTypes = inputSchema.object_type.options;
-      expect(objectTypes.length).toBeGreaterThan(0);
-
-      for (const objectType of objectTypes) {
-        expect(description).toContain(objectType);
+      for (const objectType of objectTypeSchema.options) {
+        expect(tool.description).toContain(objectType);
       }
     });
   });
