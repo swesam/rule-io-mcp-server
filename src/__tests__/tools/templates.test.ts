@@ -404,5 +404,53 @@ describe('template tools', () => {
       expect(parsed.partial_errors[0].id).toBe(1);
       expect(mocks.listMessages).toHaveBeenCalledTimes(2);
     });
+
+    it('aborts the scan on auth failure instead of accumulating partial_errors', async () => {
+      mocks.listCampaigns.mockResolvedValue({
+        data: [
+          { id: 1, name: 'Campaign 1', status: 'draft' },
+          { id: 2, name: 'Campaign 2', status: 'draft' },
+        ],
+      });
+      mocks.listMessages.mockRejectedValue(new RuleApiError('Unauthorized', 401));
+      mocks.listAutomations.mockResolvedValue({ data: [] });
+
+      const result = await handlers['rule_find_template_usage']({ id: 42 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Authentication failed');
+      // Scan should stop at the first failing call — don't hammer the API.
+      expect(mocks.listMessages).toHaveBeenCalledTimes(1);
+    });
+
+    it('aborts the scan on rate-limit and surfaces the friendly message', async () => {
+      mocks.listCampaigns.mockResolvedValue({
+        data: [{ id: 1, name: 'C1', status: 'draft' }],
+      });
+      mocks.listMessages.mockResolvedValue({ data: [{ id: 10, subject: 'E' }] });
+      mocks.listDynamicSets.mockRejectedValue(new RuleApiError('Too many requests', 429));
+      mocks.listAutomations.mockResolvedValue({ data: [] });
+
+      const result = await handlers['rule_find_template_usage']({ id: 42 });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rate limited');
+    });
+
+    it('includes statusCode on RuleApiError entries in partial_errors', async () => {
+      mocks.listCampaigns.mockResolvedValue({
+        data: [{ id: 1, name: 'C1', status: 'draft' }],
+      });
+      mocks.listMessages.mockRejectedValueOnce(new RuleApiError('Not Found', 404));
+      mocks.listAutomations.mockResolvedValue({ data: [] });
+
+      const result = await handlers['rule_find_template_usage']({ id: 42 });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.partial_errors).toHaveLength(1);
+      expect(parsed.partial_errors[0].error).toContain('Rule.io API error (404)');
+      expect(parsed.partial_errors[0].error).toContain('Not Found');
+    });
   });
 });

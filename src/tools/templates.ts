@@ -3,6 +3,27 @@ import { z } from 'zod';
 import { RuleApiError, type RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
 
+/**
+ * Systemic errors (auth, rate limit) should abort the scan — continuing
+ * would burn API calls on subsequent items that will also fail and
+ * surface as a misleading "successful" partial response.
+ */
+function isSystemicRuleApiError(error: unknown): boolean {
+  return error instanceof RuleApiError && (error.isAuthError() || error.isRateLimited());
+}
+
+/**
+ * Format a per-item error for the partial_errors list. Include statusCode
+ * for RuleApiError so the caller can distinguish 4xx from 5xx without
+ * parsing the message text.
+ */
+function formatPartialError(error: unknown): string {
+  if (error instanceof RuleApiError) {
+    return `Rule.io API error (${error.statusCode}): ${error.message}`;
+  }
+  return error instanceof Error ? error.message : String(error);
+}
+
 // Helper: resolve template_id for a message by checking its dynamic sets.
 // Scans every dynamic set returned for the message and returns the first
 // one that carries a non-null template_id, since earlier entries can have
@@ -91,19 +112,25 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
               break; // stop at first matching message for this dispatcher
             }
           } catch (error) {
+            // Auth / rate-limit failures are systemic — continuing would
+            // hammer the API and return a misleading "successful" response.
+            // Let them bubble up so handleRuleError produces a proper
+            // error result. Other RuleApiErrors record statusCode for debugging.
+            if (isSystemicRuleApiError(error)) throw error;
             partialErrors.push({
               kind,
               id: dispatcher.id,
               message_id: message.id,
-              error: error instanceof Error ? error.message : String(error),
+              error: formatPartialError(error),
             });
           }
         }
       } catch (error) {
+        if (isSystemicRuleApiError(error)) throw error;
         partialErrors.push({
           kind,
           id: dispatcher.id,
-          error: error instanceof Error ? error.message : String(error),
+          error: formatPartialError(error),
         });
       }
     }
