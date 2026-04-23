@@ -11,7 +11,7 @@ const OBJECT_TYPES = [
   'JOURNEY',
 ] as const;
 
-const METRICS = [
+export const METRICS = [
   'open',
   'open_uniq',
   'sent',
@@ -25,7 +25,7 @@ const METRICS = [
   'spam',
 ] as const;
 
-const MESSAGE_TYPES = ['email', 'text_message'] as const;
+export const MESSAGE_TYPES = ['email', 'text_message'] as const;
 
 /** Append ' 00:00:00' when only a YYYY-MM-DD date is provided (Rule.io API requires datetime). */
 function normaliseDateFrom(date: string): string {

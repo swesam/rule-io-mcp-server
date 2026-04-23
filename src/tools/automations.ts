@@ -4,6 +4,7 @@ import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { sectionsSchema } from '../util/content-blocks.js';
 import { applyTemplateConfig } from '../util/template-config.js';
+import { METRICS, MESSAGE_TYPES } from './analytics.js';
 
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -136,16 +137,57 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
 
   server.tool(
     'rule_get_automation',
-    'Get detailed information about a specific automation by ID. Returns trigger, message, and status information.',
+    'Get detailed information about a specific automation by ID. Returns trigger, message, and status information. Optionally include analytics metrics for the automation.',
     {
       id: z.number().describe('Automation ID'),
+      include_analytics: z
+        .object({
+          date_from: z.string().describe('Start date (YYYY-MM-DD)'),
+          date_to: z.string().describe('End date (YYYY-MM-DD)'),
+          metrics: z
+            .array(z.enum(METRICS))
+            .min(1)
+            .describe('Metrics to retrieve'),
+          message_type: z
+            .enum(MESSAGE_TYPES)
+            .optional()
+            .describe('Filter by message type (email or text_message)'),
+        })
+        .optional()
+        .describe('Optionally fetch analytics for the automation'),
     },
-    async ({ id }) => {
+    async ({ id, include_analytics }) => {
       try {
         const result = await client.getAutomation(id);
         if (!result) {
           return textResult(`Automation ${id} not found.`);
         }
+
+        // If include_analytics is provided, fetch and merge analytics
+        if (include_analytics) {
+          try {
+            const analytics = await client.getAnalytics({
+              date_from: include_analytics.date_from,
+              date_to: include_analytics.date_to,
+              object_type: 'AUTOMAIL',
+              object_ids: [String(id)],
+              metrics: include_analytics.metrics,
+              message_type: include_analytics.message_type,
+            });
+            return jsonResult({
+              ...result,
+              analytics: analytics.data?.[0]?.metrics ?? [],
+            });
+          } catch (analyticsError) {
+            // Analytics is additive context; don't fail the whole call
+            const errorMsg = analyticsError instanceof Error ? analyticsError.message : 'Unknown error';
+            return jsonResult({
+              ...result,
+              analytics_error: errorMsg,
+            });
+          }
+        }
+
         return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);

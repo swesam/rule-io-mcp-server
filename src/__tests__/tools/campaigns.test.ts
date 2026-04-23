@@ -14,6 +14,7 @@ interface MockClient {
   copyCampaign: ReturnType<typeof vi.fn>;
   scheduleCampaign: ReturnType<typeof vi.fn>;
   listSegments: ReturnType<typeof vi.fn>;
+  getAnalytics: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
@@ -28,6 +29,7 @@ function createMockClient(): MockClient {
     copyCampaign: vi.fn(),
     scheduleCampaign: vi.fn(),
     listSegments: vi.fn(),
+    getAnalytics: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -162,6 +164,106 @@ describe('campaign tools', () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
+
+    it('returns campaign with analytics when include_analytics is provided', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
+      const analytics = {
+        data: [
+          { id: '1', metrics: [{ metric: 'open', value: 150 }, { metric: 'click', value: 42 }] },
+        ],
+      };
+      mocks.getCampaign.mockResolvedValue(campaign);
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open', 'click'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...campaign,
+        analytics: [{ metric: 'open', value: 150 }, { metric: 'click', value: 42 }],
+      });
+      expect(mocks.getAnalytics).toHaveBeenCalledWith({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['1'],
+        metrics: ['open', 'click'],
+        message_type: undefined,
+      });
+    });
+
+    it('returns campaign with analytics_error when analytics call fails', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
+      mocks.getCampaign.mockResolvedValue(campaign);
+      mocks.getAnalytics.mockRejectedValue(new Error('Analytics unavailable'));
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...campaign,
+        analytics_error: 'Analytics unavailable',
+      });
+    });
+
+    it('includes message_type when provided in include_analytics', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
+      const analytics = { data: [{ id: '1', metrics: [] }] };
+      mocks.getCampaign.mockResolvedValue(campaign);
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+          message_type: 'email',
+        },
+      });
+
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message_type: 'email',
+        })
+      );
+    });
+
+    it('returns empty analytics array when analytics data is missing', async () => {
+      const campaign = { id: 1, name: 'Summer Sale', status: 'draft' };
+      const analytics = { data: [] };
+      mocks.getCampaign.mockResolvedValue(campaign);
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.analytics).toEqual([]);
     });
   });
 
