@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { RuleClient } from 'rule-io-sdk';
 import { RuleApiError } from 'rule-io-sdk';
 import { registerAnalyticsTools } from '../../tools/analytics.js';
@@ -29,6 +30,23 @@ describe('analytics tools', () => {
   beforeEach(() => {
     mocks = createMockClient();
     handlers = registerAndCapture(registerAnalyticsTools, mocks.asClient);
+  });
+
+  describe('tool descriptions', () => {
+    it('rule_get_analytics description lists all valid object_type values', () => {
+      const server = new McpServer({ name: 'test', version: '0.0.1' });
+      const toolSpy = vi.spyOn(server, 'tool');
+      registerAnalyticsTools(server, mocks.asClient);
+
+      const toolCall = toolSpy.mock.calls.find((call) => call[0] === 'rule_get_analytics');
+      expect(toolCall).toBeDefined();
+      const description = toolCall?.[1] as string;
+
+      const objectTypes = ['CAMPAIGN', 'AUTOMAIL', 'AB_TEST', 'TRANSACTIONAL_NAME', 'JOURNEY'];
+      for (const objectType of objectTypes) {
+        expect(description).toContain(objectType);
+      }
+    });
   });
 
   describe('rule_get_analytics', () => {
