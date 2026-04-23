@@ -292,13 +292,35 @@ describe('automation tools', () => {
         analytics: [{ metric: 'open', value: 200 }, { metric: 'click', value: 50 }],
       });
       expect(mocks.getAnalytics).toHaveBeenCalledWith({
-        date_from: '2025-01-01',
-        date_to: '2025-01-31',
+        date_from: '2025-01-01 00:00:00',
+        date_to: '2025-01-31 23:59:59',
         object_type: 'AUTOMAIL',
         object_ids: ['1'],
         metrics: ['open', 'click'],
         message_type: undefined,
       });
+    });
+
+    it('passes through full datetime strings unchanged', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockResolvedValue({ data: [] });
+
+      await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01 08:00:00',
+          date_to: '2025-01-31 18:30:00',
+          metrics: ['open'],
+        },
+      });
+
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01 08:00:00',
+          date_to: '2025-01-31 18:30:00',
+        }),
+      );
     });
 
     it('returns automation with analytics_error when analytics call fails', async () => {

@@ -28,12 +28,12 @@ export const METRICS = [
 export const MESSAGE_TYPES = ['email', 'text_message'] as const;
 
 /** Append ' 00:00:00' when only a YYYY-MM-DD date is provided (Rule.io API requires datetime). */
-function normaliseDateFrom(date: string): string {
+export function normaliseDateFrom(date: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date} 00:00:00` : date;
 }
 
 /** Append ' 23:59:59' when only a YYYY-MM-DD date is provided (Rule.io API requires datetime). */
-function normaliseDateTo(date: string): string {
+export function normaliseDateTo(date: string): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(date) ? `${date} 23:59:59` : date;
 }
 

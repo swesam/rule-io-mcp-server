@@ -4,7 +4,7 @@ import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { sectionsSchema } from '../util/content-blocks.js';
 import { applyTemplateConfig } from '../util/template-config.js';
-import { METRICS, MESSAGE_TYPES } from './analytics.js';
+import { METRICS, MESSAGE_TYPES, normaliseDateFrom, normaliseDateTo } from './analytics.js';
 
 export function registerAutomationTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -142,8 +142,12 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
       id: z.number().describe('Automation ID'),
       include_analytics: z
         .object({
-          date_from: z.string().describe('Start date (YYYY-MM-DD)'),
-          date_to: z.string().describe('End date (YYYY-MM-DD)'),
+          date_from: z
+            .string()
+            .describe('Start date — YYYY-MM-DD (auto-expanded to 00:00:00) or YYYY-MM-DD HH:mm:ss'),
+          date_to: z
+            .string()
+            .describe('End date — YYYY-MM-DD (auto-expanded to 23:59:59) or YYYY-MM-DD HH:mm:ss'),
           metrics: z
             .array(z.enum(METRICS))
             .min(1)
@@ -167,8 +171,8 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
         if (include_analytics) {
           try {
             const analytics = await client.getAnalytics({
-              date_from: include_analytics.date_from,
-              date_to: include_analytics.date_to,
+              date_from: normaliseDateFrom(include_analytics.date_from),
+              date_to: normaliseDateTo(include_analytics.date_to),
               object_type: 'AUTOMAIL',
               object_ids: [String(id)],
               metrics: include_analytics.metrics,
