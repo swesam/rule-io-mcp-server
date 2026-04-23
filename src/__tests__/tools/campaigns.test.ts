@@ -241,6 +241,7 @@ describe('campaign tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         ...campaign,
+        analytics: [],
         analytics_error: 'Unexpected error: Analytics unavailable',
       });
     });
@@ -263,6 +264,7 @@ describe('campaign tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         ...campaign,
+        analytics: [],
         analytics_error: 'Authentication failed. Check your RULE_IO_API_KEY environment variable.',
       });
     });

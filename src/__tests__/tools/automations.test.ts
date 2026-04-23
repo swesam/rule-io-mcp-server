@@ -341,6 +341,7 @@ describe('automation tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         ...automation,
+        analytics: [],
         analytics_error: 'Unexpected error: Analytics unavailable',
       });
     });
@@ -363,6 +364,7 @@ describe('automation tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed).toEqual({
         ...automation,
+        analytics: [],
         analytics_error: 'Rate limited by Rule.io API. Please wait a moment and retry.',
       });
     });

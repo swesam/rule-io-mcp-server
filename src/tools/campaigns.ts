@@ -100,8 +100,11 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
             // Analytics is additive context; don't fail the whole call.
             // Sanitise via formatRuleErrorMessage so auth/rate-limit/validation
             // errors surface the same user-oriented text as handleRuleError.
+            // Always include analytics: [] so the response shape stays
+            // consistent for callers that requested analytics.
             return jsonResult({
               ...result,
+              analytics: [],
               analytics_error: formatRuleErrorMessage(analyticsError),
             });
           }

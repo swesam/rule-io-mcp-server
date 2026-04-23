@@ -2,10 +2,13 @@ import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
 /**
- * Convert an unknown error into a user-oriented, sanitized message string.
- * Use this when surfacing an error as a field in a larger successful
- * response (e.g. additive analytics that failed). For tool-level failures,
- * use {@link handleRuleError} instead, which wraps this in a CallToolResult.
+ * Convert an unknown error into a user-oriented message string.
+ * Known Rule.io error cases (auth, rate limit, validation, config) are
+ * rendered with friendlier, fixed messages; other errors fall through and
+ * include the underlying message text. Use this when surfacing an error
+ * as a field in a larger successful response (e.g. additive analytics
+ * that failed). For tool-level failures, use {@link handleRuleError}
+ * instead, which wraps this in a CallToolResult.
  */
 export function formatRuleErrorMessage(error: unknown): string {
   if (error instanceof RuleApiError) {
