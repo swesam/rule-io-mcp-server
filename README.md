@@ -255,11 +255,11 @@ The AI calls **`rule_manage_brand_style`** with **`action: create_from_domain`**
 
 These are Rule.io API behaviours we cannot fix from the MCP layer. Workarounds below are what we recommend today.
 
-### Filtering `list_campaigns`
+### Filtering `rule_list_campaigns`
 
-The Rule.io API does not accept a `status` filter on `GET /v2/campaigns`. `rule_list_campaigns` returns everything (drafts, scheduled, sent). Filter client-side on `status.key` (`"sent"`, `"draft"`, `"scheduled"`, `"archived"`).
+The Rule.io API does not accept a `status` filter on `GET /v2/campaigns`. `rule_list_campaigns` returns everything (drafts, scheduled, sent). Filter client-side on the campaign `status` field — the SDK types it as `{ value, key, description }` (so match on `status.key === "sent"` etc.), but some responses surface it as a plain string. Handle both.
 
-The campaign `subject` also lives on the message resource, not the campaign itself — the list response includes `name` but not `subject`. If campaigns in your account are often unnamed, fetch the message to get the subject.
+The campaign `subject` also lives on the message resource, not the campaign itself — the list response includes `name` but not `subject`. This MCP server does not currently expose a message-get tool, so if campaigns in your account are often unnamed, retrieve the subject from the Rule.io UI or the Rule.io API directly until we add one.
 
 ### Segment metadata
 
@@ -283,7 +283,7 @@ Rule.io API keys do not currently carry a read-only scope. If you want to run th
 
 ### Rate limits
 
-Rule.io has not published formal rate limits. We default to serial calls inside this server. If you call it from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. If you call this server from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
 
 ---
 
