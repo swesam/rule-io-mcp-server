@@ -33,16 +33,24 @@ describe('analytics tools', () => {
   });
 
   describe('tool descriptions', () => {
-    it('rule_get_analytics description lists all valid object_type values', () => {
+    it('rule_get_analytics description lists every valid object_type from the schema', () => {
       const server = new McpServer({ name: 'test', version: '0.0.1' });
       const toolSpy = vi.spyOn(server, 'tool');
       registerAnalyticsTools(server, mocks.asClient);
 
       const toolCall = toolSpy.mock.calls.find((call) => call[0] === 'rule_get_analytics');
-      expect(toolCall).toBeDefined();
-      const description = toolCall?.[1] as string;
+      expect(toolCall).toBeTruthy();
+      if (!toolCall) return;
 
-      const objectTypes = ['CAMPAIGN', 'AUTOMAIL', 'AB_TEST', 'TRANSACTIONAL_NAME', 'JOURNEY'];
+      const description = toolCall[1];
+      const inputSchema = toolCall[2] as unknown as {
+        object_type: { options: readonly string[] };
+      };
+
+      expect(typeof description).toBe('string');
+      const objectTypes = inputSchema.object_type.options;
+      expect(objectTypes.length).toBeGreaterThan(0);
+
       for (const objectType of objectTypes) {
         expect(description).toContain(objectType);
       }

@@ -11,6 +11,23 @@ const OBJECT_TYPES = [
   'JOURNEY',
 ] as const;
 
+const OBJECT_TYPE_GUIDANCE: Record<(typeof OBJECT_TYPES)[number], string> = {
+  CAMPAIGN: 'one-off sends; use rule_list_campaigns for IDs',
+  AUTOMAIL: 'triggered automation emails; use rule_list_automations for IDs',
+  AB_TEST: 'A/B tested sends',
+  TRANSACTIONAL_NAME: 'named transactional sends',
+  JOURNEY: 'multi-step journey messages',
+};
+
+const OBJECT_TYPE_DESCRIPTION = OBJECT_TYPES.map(
+  (type) => `${type} (${OBJECT_TYPE_GUIDANCE[type]})`,
+).join(', ');
+
+const GET_ANALYTICS_DESCRIPTION =
+  'Get per-object email or text-message performance metrics. Requires object_type + object_ids + metrics to specify what to query. ' +
+  `Set object_type to one of: ${OBJECT_TYPE_DESCRIPTION}. ` +
+  'For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead.';
+
 const METRICS = [
   'open',
   'open_uniq',
@@ -40,7 +57,7 @@ function normaliseDateTo(date: string): string {
 export function registerAnalyticsTools(server: McpServer, client: RuleClient): void {
   server.tool(
     'rule_get_analytics',
-    'Get per-object email or text-message performance metrics. Requires object_type + object_ids + metrics to specify what to query. Set object_type to one of: CAMPAIGN (one-off sends; use rule_list_campaigns for IDs), AUTOMAIL (triggered automation emails; use rule_list_automations for IDs), AB_TEST (A/B tested sends), TRANSACTIONAL_NAME (named transactional sends), JOURNEY (multi-step journey messages). For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead.',
+    GET_ANALYTICS_DESCRIPTION,
     {
       date_from: z.string().describe('Start date (YYYY-MM-DD)'),
       date_to: z.string().describe('End date (YYYY-MM-DD)'),
