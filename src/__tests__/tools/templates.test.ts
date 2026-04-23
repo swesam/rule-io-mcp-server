@@ -437,7 +437,7 @@ describe('template tools', () => {
       expect(result.content[0].text).toContain('Rate limited');
     });
 
-    it('includes statusCode on RuleApiError entries in partial_errors', async () => {
+    it('includes status_code on RuleApiError entries in partial_errors', async () => {
       mocks.listCampaigns.mockResolvedValue({
         data: [{ id: 1, name: 'C1', status: 'draft' }],
       });
@@ -449,8 +449,25 @@ describe('template tools', () => {
       expect(result.isError).toBeUndefined();
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed.partial_errors).toHaveLength(1);
+      expect(parsed.partial_errors[0].status_code).toBe(404);
       expect(parsed.partial_errors[0].error).toContain('Rule.io API error (404)');
       expect(parsed.partial_errors[0].error).toContain('Not Found');
+    });
+
+    it('omits status_code when the error is not a RuleApiError', async () => {
+      mocks.listCampaigns.mockResolvedValue({
+        data: [{ id: 1, name: 'C1', status: 'draft' }],
+      });
+      mocks.listMessages.mockRejectedValueOnce(new Error('network blip'));
+      mocks.listAutomations.mockResolvedValue({ data: [] });
+
+      const result = await handlers['rule_find_template_usage']({ id: 42 });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.partial_errors).toHaveLength(1);
+      expect(parsed.partial_errors[0].status_code).toBeUndefined();
+      expect(parsed.partial_errors[0].error).toBe('network blip');
     });
   });
 });

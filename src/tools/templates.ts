@@ -13,15 +13,21 @@ function isSystemicRuleApiError(error: unknown): boolean {
 }
 
 /**
- * Format a per-item error for the partial_errors list. Include statusCode
- * for RuleApiError so the caller can distinguish 4xx from 5xx without
+ * Build the error fields for a partial_errors entry. Returns both a
+ * human-readable `error` string and, for RuleApiError, a separate
+ * `status_code` number so callers can distinguish 4xx from 5xx without
  * parsing the message text.
  */
-function formatPartialError(error: unknown): string {
+function toPartialErrorFields(
+  error: unknown,
+): { error: string; status_code?: number } {
   if (error instanceof RuleApiError) {
-    return `Rule.io API error (${error.statusCode}): ${error.message}`;
+    return {
+      error: `Rule.io API error (${error.statusCode}): ${error.message}`,
+      status_code: error.statusCode,
+    };
   }
-  return error instanceof Error ? error.message : String(error);
+  return { error: error instanceof Error ? error.message : String(error) };
 }
 
 // Helper: resolve template_id for a message by checking its dynamic sets.
@@ -56,6 +62,8 @@ interface PartialError {
   kind: UsageKind;
   id: number;
   message_id?: number;
+  /** HTTP status code when the underlying failure is a RuleApiError. */
+  status_code?: number;
   error: string;
 }
 
@@ -121,7 +129,7 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
               kind,
               id: dispatcher.id,
               message_id: message.id,
-              error: formatPartialError(error),
+              ...toPartialErrorFields(error),
             });
           }
         }
@@ -130,7 +138,7 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
         partialErrors.push({
           kind,
           id: dispatcher.id,
-          error: formatPartialError(error),
+          ...toPartialErrorFields(error),
         });
       }
     }
