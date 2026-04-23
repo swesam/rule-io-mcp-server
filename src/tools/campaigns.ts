@@ -51,7 +51,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_get_campaign',
-    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign.',
+    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged.',
     {
       id: z.number().describe('Campaign ID'),
       include_analytics: z

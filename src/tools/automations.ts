@@ -137,7 +137,7 @@ export function registerAutomationTools(server: McpServer, client: RuleClient): 
 
   server.tool(
     'rule_get_automation',
-    'Get detailed information about a specific automation by ID. Returns trigger, message, and status information. Optionally include analytics metrics for the automation.',
+    'Get detailed information about a specific automation by ID. Returns trigger, message, and status information. Optionally include analytics metrics for the automation. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main automation payload is unchanged.',
     {
       id: z.number().describe('Automation ID'),
       include_analytics: z

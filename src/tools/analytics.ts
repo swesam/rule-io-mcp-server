@@ -59,8 +59,12 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
     'rule_get_analytics',
     GET_ANALYTICS_DESCRIPTION,
     {
-      date_from: z.string().describe('Start date (YYYY-MM-DD)'),
-      date_to: z.string().describe('End date (YYYY-MM-DD)'),
+      date_from: z
+        .string()
+        .describe('Start date — YYYY-MM-DD (auto-expanded to 00:00:00) or YYYY-MM-DD HH:mm:ss'),
+      date_to: z
+        .string()
+        .describe('End date — YYYY-MM-DD (auto-expanded to 23:59:59) or YYYY-MM-DD HH:mm:ss'),
       object_type: z
         .enum(OBJECT_TYPES)
         .describe('Type of object to query'),
@@ -85,8 +89,8 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
           );
         }
         const result = await client.getAnalytics({
-          date_from,
-          date_to,
+          date_from: normaliseDateFrom(date_from),
+          date_to: normaliseDateTo(date_to),
           object_type,
           object_ids,
           metrics: [...metrics],
