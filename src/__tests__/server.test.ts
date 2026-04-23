@@ -96,7 +96,7 @@ describe('createServer', () => {
     expect(server).toBeDefined();
   });
 
-  it('registers all 35 expected tools', () => {
+  it('registers all 36 expected tools', () => {
     createServer({
       apiKey: 'test-key',
       debug: false,

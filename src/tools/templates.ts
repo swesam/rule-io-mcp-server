@@ -138,9 +138,14 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
     },
     async ({ id }) => {
       try {
-        const campaigns: Array<{ id: number; name: string; subject?: string; status?: string; action_time?: string }> = [];
+        const campaigns: Array<{ id: number; name: string; subject?: string; status?: string }> = [];
         const automations: Array<{ id: number; name: string; active?: boolean; trigger_type?: string }> = [];
-        const partialErrors: Array<{ kind: 'campaign' | 'automation'; id: number; error: string }> = [];
+        const partialErrors: Array<{
+          kind: 'campaign' | 'automation';
+          id: number;
+          message_id?: number;
+          error: string;
+        }> = [];
 
         let campaignsScanned = 0;
         let automationsScanned = 0;
@@ -182,7 +187,8 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
                     partialErrors.push({
                       kind: 'campaign',
                       id: campaign.id,
-                      error: `Failed to resolve message ${message.id}: ${error instanceof Error ? error.message : String(error)}`,
+                      message_id: message.id,
+                      error: error instanceof Error ? error.message : String(error),
                     });
                   }
                 }
@@ -238,7 +244,8 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
                     partialErrors.push({
                       kind: 'automation',
                       id: automation.id,
-                      error: `Failed to resolve message ${message.id}: ${error instanceof Error ? error.message : String(error)}`,
+                      message_id: message.id,
+                      error: error instanceof Error ? error.message : String(error),
                     });
                   }
                 }

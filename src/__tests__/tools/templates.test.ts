@@ -296,6 +296,7 @@ describe('template tools', () => {
       expect(parsed.partial_errors).toHaveLength(1);
       expect(parsed.partial_errors[0].kind).toBe('campaign');
       expect(parsed.partial_errors[0].id).toBe(2);
+      expect(parsed.partial_errors[0].message_id).toBe(11);
     });
 
     it('paginates through campaigns (2 pages)', async () => {
