@@ -11,6 +11,7 @@ interface MockClient {
   getAutomation: ReturnType<typeof vi.fn>;
   updateAutomation: ReturnType<typeof vi.fn>;
   deleteAutomation: ReturnType<typeof vi.fn>;
+  getAnalytics: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
@@ -22,6 +23,7 @@ function createMockClient(): MockClient {
     getAutomation: vi.fn(),
     updateAutomation: vi.fn(),
     deleteAutomation: vi.fn(),
+    getAnalytics: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -262,6 +264,152 @@ describe('automation tools', () => {
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Rule.io API error (500)');
+    });
+
+    it('returns automation with analytics when include_analytics is provided', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      const analytics = {
+        data: [
+          { id: '1', metrics: [{ metric: 'open', value: 200 }, { metric: 'click', value: 50 }] },
+        ],
+      };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      const result = await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open', 'click'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...automation,
+        analytics: [{ metric: 'open', value: 200 }, { metric: 'click', value: 50 }],
+      });
+      expect(mocks.getAnalytics).toHaveBeenCalledWith({
+        date_from: '2025-01-01 00:00:00',
+        date_to: '2025-01-31 23:59:59',
+        object_type: 'AUTOMAIL',
+        object_ids: ['1'],
+        metrics: ['open', 'click'],
+        message_type: undefined,
+      });
+    });
+
+    it('passes through full datetime strings unchanged', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockResolvedValue({ data: [] });
+
+      await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01 08:00:00',
+          date_to: '2025-01-31 18:30:00',
+          metrics: ['open'],
+        },
+      });
+
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          date_from: '2025-01-01 08:00:00',
+          date_to: '2025-01-31 18:30:00',
+        }),
+      );
+    });
+
+    it('returns automation with analytics_error when analytics call fails', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockRejectedValue(new Error('Analytics unavailable'));
+
+      const result = await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...automation,
+        analytics: [],
+        analytics_error: 'Unexpected error: Analytics unavailable',
+      });
+    });
+
+    it('sanitises RuleApiError into the same message handleRuleError would emit', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockRejectedValue(new RuleApiError('Too many requests', 429));
+
+      const result = await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed).toEqual({
+        ...automation,
+        analytics: [],
+        analytics_error: 'Rate limited by Rule.io API. Please wait a moment and retry.',
+      });
+    });
+
+    it('includes message_type when provided in include_analytics', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      const analytics = { data: [{ id: '1', metrics: [] }] };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+          message_type: 'text_message',
+        },
+      });
+
+      expect(mocks.getAnalytics).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message_type: 'text_message',
+        })
+      );
+    });
+
+    it('returns empty analytics array when analytics data is missing', async () => {
+      const automation = { id: 1, name: 'Welcome', active: true };
+      const analytics = { data: [] };
+      mocks.getAutomation.mockResolvedValue(automation);
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      const result = await handlers['rule_get_automation']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.analytics).toEqual([]);
     });
   });
 

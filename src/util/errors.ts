@@ -1,77 +1,42 @@
 import { RuleApiError, RuleConfigError } from 'rule-io-sdk';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 
-export function handleRuleError(error: unknown): CallToolResult {
+/**
+ * Convert an unknown error into a user-oriented message string.
+ * Known Rule.io error cases (auth, rate limit, validation, config) are
+ * rendered with friendlier, fixed messages; other errors fall through and
+ * include the underlying message text. Use this when surfacing an error
+ * as a field in a larger successful response (e.g. additive analytics
+ * that failed). For tool-level failures, use {@link handleRuleError}
+ * instead, which wraps this in a CallToolResult.
+ */
+export function formatRuleErrorMessage(error: unknown): string {
   if (error instanceof RuleApiError) {
     if (error.isAuthError()) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Authentication failed. Check your RULE_IO_API_KEY environment variable.',
-          },
-        ],
-        isError: true,
-      };
+      return 'Authentication failed. Check your RULE_IO_API_KEY environment variable.';
     }
-
     if (error.isRateLimited()) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Rate limited by Rule.io API. Please wait a moment and retry.',
-          },
-        ],
-        isError: true,
-      };
+      return 'Rate limited by Rule.io API. Please wait a moment and retry.';
     }
-
     if (error.isValidationError() && error.validationErrors) {
       const details = Object.entries(error.validationErrors)
         .map(([field, msgs]) => `  ${field}: ${msgs.join(', ')}`)
         .join('\n');
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Validation error:\n${details}`,
-          },
-        ],
-        isError: true,
-      };
+      return `Validation error:\n${details}`;
     }
-
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Rule.io API error (${error.statusCode}): ${error.message}`,
-        },
-      ],
-      isError: true,
-    };
+    return `Rule.io API error (${error.statusCode}): ${error.message}`;
   }
 
   if (error instanceof RuleConfigError) {
-    return {
-      content: [
-        {
-          type: 'text',
-          text: `Configuration error: ${error.message}`,
-        },
-      ],
-      isError: true,
-    };
+    return `Configuration error: ${error.message}`;
   }
 
+  return `Unexpected error: ${error instanceof Error ? error.message : String(error)}`;
+}
+
+export function handleRuleError(error: unknown): CallToolResult {
   return {
-    content: [
-      {
-        type: 'text',
-        text: `Unexpected error: ${error instanceof Error ? error.message : String(error)}`,
-      },
-    ],
+    content: [{ type: 'text', text: formatRuleErrorMessage(error) }],
     isError: true,
   };
 }

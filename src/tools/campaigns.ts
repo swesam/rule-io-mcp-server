@@ -4,6 +4,7 @@ import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { applyTemplateConfig } from '../util/template-config.js';
 import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
+import { fetchAnalyticsFor, includeAnalyticsSchema } from './analytics.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -50,17 +51,24 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_get_campaign',
-    'Get detailed information about a specific campaign by ID.',
+    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged.',
     {
       id: z.number().describe('Campaign ID'),
+      include_analytics: includeAnalyticsSchema
+        .optional()
+        .describe('Optionally fetch analytics for the campaign'),
     },
-    async ({ id }) => {
+    async ({ id, include_analytics }) => {
       try {
         const result = await client.getCampaign(id);
         if (!result) {
           return textResult(`Campaign ${id} not found.`);
         }
-        return jsonResult(result);
+        if (!include_analytics) {
+          return jsonResult(result);
+        }
+        const merge = await fetchAnalyticsFor(client, 'CAMPAIGN', id, include_analytics);
+        return jsonResult({ ...result, ...merge });
       } catch (error) {
         return handleRuleError(error);
       }
