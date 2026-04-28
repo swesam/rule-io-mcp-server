@@ -67,6 +67,24 @@ interface PartialError {
   error: string;
 }
 
+interface CampaignOwner {
+  kind: 'campaign';
+  id: number;
+  name?: string;
+  subject?: string;
+  status?: string;
+}
+
+interface AutomationOwner {
+  kind: 'automation';
+  id: number;
+  name?: string;
+  active?: boolean;
+  trigger_type?: string;
+}
+
+type TemplateOwner = CampaignOwner | AutomationOwner;
+
 interface ScanDispatchersOptions<D extends DispatcherLike, R> {
   kind: UsageKind;
   templateId: number;
@@ -80,12 +98,13 @@ interface ScanDispatchersOptions<D extends DispatcherLike, R> {
 
 /**
  * Paginate `listPage` and, for each dispatcher, resolve whether any of its
- * messages reference `templateId`. A template has at most one owner
- * (campaigns/automations are 1:1 with templates), so the scan stops at
- * the first match — inner message loop, outer dispatcher loop, and the
- * page loop all terminate. Returns the match (or `null`) and the number
- * of dispatchers scanned; per-item failures are appended to the shared
- * `partialErrors` array rather than aborting the scan.
+ * messages reference `templateId`. Each template has at most one owning
+ * campaign or automation (the reverse is not required — a dispatcher may
+ * exist without a template), so the scan stops at the first match — inner
+ * message loop, outer dispatcher loop, and the page loop all terminate.
+ * Returns the match (or `null`) and the number of dispatchers scanned;
+ * per-item failures are appended to the shared `partialErrors` array
+ * rather than aborting the scan.
  */
 async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
   client: RuleClient,
@@ -280,30 +299,29 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
       try {
         const partialErrors: PartialError[] = [];
 
-        const { match: campaignOwner, scanned: campaignsScanned } =
-          await scanDispatchersForTemplate(
-            client,
-            {
+        const { match: campaignOwner, scanned: campaignsScanned } = await scanDispatchersForTemplate(
+          client,
+          {
+            kind: 'campaign',
+            templateId: id,
+            listPage: (page, per_page) => client.listCampaigns({ page, per_page }),
+            dispatcherType: 'campaign',
+            toResult: (campaign, message): CampaignOwner => ({
               kind: 'campaign',
-              templateId: id,
-              listPage: (page, per_page) => client.listCampaigns({ page, per_page }),
-              dispatcherType: 'campaign',
-              toResult: (campaign, message) => ({
-                kind: 'campaign' as const,
-                id: campaign.id as number,
-                name: campaign.name,
-                subject: message.subject,
-                status: campaign.status?.toString(),
-              }),
-            },
-            partialErrors,
-          );
+              id: campaign.id as number,
+              name: campaign.name,
+              subject: message.subject,
+              status: campaign.status?.toString(),
+            }),
+          },
+          partialErrors,
+        );
 
-        let owner: Record<string, unknown> | null = campaignOwner;
+        let owner: TemplateOwner | null = campaignOwner;
         let automationsScanned = 0;
 
-        // 1:1 invariant: if a campaign owns the template, no automation can.
-        // Skip the automations pass entirely.
+        // Each template has at most one owner, so a campaign match rules out
+        // any automation match — skip the automations pass entirely.
         if (!owner) {
           const { match: automationOwner, scanned } = await scanDispatchersForTemplate(
             client,
@@ -312,8 +330,8 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
               templateId: id,
               listPage: (page, per_page) => client.listAutomations({ page, per_page }),
               dispatcherType: 'automail',
-              toResult: (automation) => ({
-                kind: 'automation' as const,
+              toResult: (automation): AutomationOwner => ({
+                kind: 'automation',
                 id: automation.id as number,
                 name: automation.name,
                 active: automation.active,

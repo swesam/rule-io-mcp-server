@@ -234,7 +234,7 @@ describe('template tools', () => {
       expect(parsed.scanned.campaigns).toBe(1);
       expect(parsed.scanned.automations).toBe(0);
       expect(parsed.partial_errors).toBeUndefined();
-      // 1:1 invariant: once a campaign owner is found, automations must not be scanned.
+      // Each template has at most one owner: once a campaign owner is found, automations must not be scanned.
       expect(mocks.listAutomations).not.toHaveBeenCalled();
     });
 
