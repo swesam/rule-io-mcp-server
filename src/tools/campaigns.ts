@@ -4,7 +4,7 @@ import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { applyTemplateConfig } from '../util/template-config.js';
 import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
-import { fetchAnalyticsFor, includeAnalyticsSchema } from './analytics.js';
+import { fetchAnalyticsFor, includeAnalyticsSchema, MESSAGE_TYPES } from './analytics.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -51,7 +51,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_get_campaign',
-    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged. For SMS (text_message) campaigns, an "analytics_warnings" array flags open metrics as artefacts (Rule.io does not track opens on SMS).',
+    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged. For SMS (text_message) campaigns, an "analytics_warnings" array may be included when open-related metrics such as "open" or "open_uniq" were requested, flagging those metrics as artefacts (Rule.io does not track opens on SMS).',
     {
       id: z.number().describe('Campaign ID'),
       include_analytics: includeAnalyticsSchema
@@ -68,10 +68,11 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
           return jsonResult(result);
         }
         const messageTypeKey = result.data?.message_type?.key;
-        const messageTypeHint =
-          messageTypeKey === 'text_message' || messageTypeKey === 'email'
-            ? messageTypeKey
-            : undefined;
+        const messageTypeHint = (MESSAGE_TYPES as readonly string[]).includes(
+          messageTypeKey ?? '',
+        )
+          ? (messageTypeKey as (typeof MESSAGE_TYPES)[number])
+          : undefined;
         const merge = await fetchAnalyticsFor(
           client,
           'CAMPAIGN',
