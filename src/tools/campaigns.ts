@@ -67,7 +67,14 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         if (!include_analytics) {
           return jsonResult(result);
         }
-        const messageTypeKey = result.data?.message_type?.key;
+        // Handle both SDK response shapes: wrapped `{ data: campaign }`
+        // (current RuleCampaignResponse contract) and the flatter shape that
+        // some tests and historical responses use. Either way, message_type
+        // may be absent, in which case we pass no hint.
+        const campaign = (result.data ?? result) as {
+          message_type?: { key?: string };
+        };
+        const messageTypeKey = campaign.message_type?.key;
         const messageTypeHint = (MESSAGE_TYPES as readonly string[]).includes(
           messageTypeKey ?? '',
         )
