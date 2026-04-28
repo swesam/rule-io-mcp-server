@@ -108,7 +108,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_render_template` | Render template to HTML (with optional merge tag substitution) | `id`, `subscriber_id?` |
 | `rule_get_template` | Get template details by ID | `id` |
 | `rule_delete_template` | Delete a template | `id` |
-| `rule_find_template_usage` | Find campaigns and automations using a template (expensive on large accounts — fetches all items and resolves messages) | `id` |
+| `rule_find_template_usage` | Find the single campaign or automation that owns a template (returns `{ owner: null }` if unused). Scans dispatchers until first match — no direct owner endpoint in Rule.io yet. | `id` |
 
 ### Analytics
 
