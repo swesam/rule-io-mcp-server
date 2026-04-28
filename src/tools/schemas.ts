@@ -26,9 +26,10 @@ export const listSubscribersByTagSchema = z.object({
     .number()
     .int()
     .min(1)
+    .max(1000)
     .optional()
-    .default(100)
-    .describe('Subscribers scanned per page (default 100, max ~1000)'),
+    .default(500)
+    .describe('Subscribers scanned per page (default 500, max 1000)'),
   page: z
     .number()
     .int()

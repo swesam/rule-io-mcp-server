@@ -173,7 +173,7 @@ describe('listSubscribersByTagSchema', () => {
     const result = listSubscribersByTagSchema.safeParse({ tag_ids: [10] });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.limit).toBe(100);
+      expect(result.data.limit).toBe(500);
       expect(result.data.page).toBe(1);
     }
   });
@@ -224,6 +224,16 @@ describe('listSubscribersByTagSchema', () => {
   it('rejects non-integer limit', () => {
     const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1], limit: 50.5 });
     expect(result.success).toBe(false);
+  });
+
+  it('rejects limit above 1000', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1], limit: 1001 });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts limit exactly at the 1000 upper bound', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1], limit: 1000 });
+    expect(result.success).toBe(true);
   });
 });
 
