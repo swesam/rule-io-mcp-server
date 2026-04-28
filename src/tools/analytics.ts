@@ -26,7 +26,8 @@ const OBJECT_TYPE_DESCRIPTION = OBJECT_TYPES.map(
 const GET_ANALYTICS_DESCRIPTION =
   'Get per-object email or text-message performance metrics. Requires object_type + object_ids + metrics to specify what to query. ' +
   `Set object_type to one of: ${OBJECT_TYPE_DESCRIPTION}. ` +
-  'For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead.';
+  'For an account-wide summary without object IDs, use rule_export_data with type "statistics" instead. ' +
+  'Note: SMS (text_message) campaigns have no open tracking — when message_type is "text_message" and the request includes "open" or "open_uniq" metrics, the response carries a "warnings" array flagging those fields as artefacts.';
 
 export const METRICS = [
   'open',
@@ -43,6 +44,38 @@ export const METRICS = [
 ] as const;
 
 export const MESSAGE_TYPES = ['email', 'text_message'] as const;
+
+/**
+ * Metrics that are not meaningful for SMS (text_message) campaigns.
+ * Rule.io does not track opens on SMS at all — the returned values are
+ * artefacts (often identical to click metrics), not real data.
+ */
+const SMS_UNSUPPORTED_METRICS: ReadonlyArray<(typeof METRICS)[number]> = [
+  'open',
+  'open_uniq',
+] as const;
+
+const SMS_OPEN_NOTE =
+  'SMS (text_message) has no open tracking. The returned value is an artefact and should not be reported.';
+
+export interface AnalyticsWarning {
+  field: string;
+  note: string;
+}
+
+/**
+ * Build warnings for SMS analytics responses. Emits one entry per requested
+ * metric that has no meaning on SMS (open / open_uniq). Returns [] when the
+ * caller didn't request any of those metrics — no spurious warnings.
+ */
+export function buildSmsOpenWarnings(
+  metrics: ReadonlyArray<(typeof METRICS)[number]>,
+): AnalyticsWarning[] {
+  return SMS_UNSUPPORTED_METRICS.filter((m) => metrics.includes(m)).map((field) => ({
+    field,
+    note: SMS_OPEN_NOTE,
+  }));
+}
 
 /** Append ' 00:00:00' when only a YYYY-MM-DD date is provided (Rule.io API requires datetime). */
 export function normaliseDateFrom(date: string): string {
@@ -80,6 +113,7 @@ type AnalyticsMergeObjectType = 'CAMPAIGN' | 'AUTOMAIL';
 
 interface AnalyticsMergeSuccess {
   analytics: unknown[];
+  analytics_warnings?: AnalyticsWarning[];
 }
 interface AnalyticsMergeFailure {
   analytics: [];
@@ -89,16 +123,24 @@ export type AnalyticsMergeResult = AnalyticsMergeSuccess | AnalyticsMergeFailure
 
 /**
  * Fetch analytics for a single object and return fields to merge into
- * a tool response. On success: `{ analytics }`. On failure: `{ analytics: [],
- * analytics_error }`, sanitised via formatRuleErrorMessage so auth /
- * rate-limit / validation errors match the main error path. Dates are
- * normalised the same way rule_get_analytics normalises them.
+ * a tool response. On success: `{ analytics }` plus `analytics_warnings`
+ * when the hosting object is SMS and open metrics were requested. On
+ * failure: `{ analytics: [], analytics_error }`, sanitised via
+ * formatRuleErrorMessage so auth / rate-limit / validation errors match
+ * the main error path. Dates are normalised the same way
+ * rule_get_analytics normalises them.
+ *
+ * `messageTypeHint` lets the caller (e.g. rule_get_campaign) signal the
+ * owning object's message type when it's known from the parent record.
+ * Rule.io's analytics response doesn't carry per-record message type, so
+ * we rely on the caller to supply it for SMS detection.
  */
 export async function fetchAnalyticsFor(
   client: RuleClient,
   objectType: AnalyticsMergeObjectType,
   id: number,
   params: IncludeAnalyticsParams,
+  messageTypeHint?: (typeof MESSAGE_TYPES)[number],
 ): Promise<AnalyticsMergeResult> {
   try {
     const response = await client.getAnalytics({
@@ -109,7 +151,14 @@ export async function fetchAnalyticsFor(
       metrics: [...params.metrics],
       message_type: params.message_type,
     });
-    return { analytics: response.data?.[0]?.metrics ?? [] };
+    const effectiveType = messageTypeHint ?? params.message_type;
+    const warnings =
+      effectiveType === 'text_message' ? buildSmsOpenWarnings(params.metrics) : [];
+    const result: AnalyticsMergeSuccess = { analytics: response.data?.[0]?.metrics ?? [] };
+    if (warnings.length > 0) {
+      result.analytics_warnings = warnings;
+    }
+    return result;
   } catch (error) {
     return {
       analytics: [],
@@ -160,6 +209,12 @@ export function registerAnalyticsTools(server: McpServer, client: RuleClient): v
           metrics: [...metrics],
           message_type,
         });
+        if (message_type === 'text_message') {
+          const warnings = buildSmsOpenWarnings(metrics);
+          if (warnings.length > 0) {
+            return jsonResult({ ...result, warnings });
+          }
+        }
         return jsonResult(result);
       } catch (error) {
         return handleRuleError(error);

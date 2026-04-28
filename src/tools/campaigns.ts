@@ -51,7 +51,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_get_campaign',
-    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged.',
+    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged. For SMS (text_message) campaigns, an "analytics_warnings" array flags open metrics as artefacts (Rule.io does not track opens on SMS).',
     {
       id: z.number().describe('Campaign ID'),
       include_analytics: includeAnalyticsSchema
@@ -67,7 +67,18 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         if (!include_analytics) {
           return jsonResult(result);
         }
-        const merge = await fetchAnalyticsFor(client, 'CAMPAIGN', id, include_analytics);
+        const messageTypeKey = result.data?.message_type?.key;
+        const messageTypeHint =
+          messageTypeKey === 'text_message' || messageTypeKey === 'email'
+            ? messageTypeKey
+            : undefined;
+        const merge = await fetchAnalyticsFor(
+          client,
+          'CAMPAIGN',
+          id,
+          include_analytics,
+          messageTypeHint,
+        );
         return jsonResult({ ...result, ...merge });
       } catch (error) {
         return handleRuleError(error);

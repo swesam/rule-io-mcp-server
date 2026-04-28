@@ -160,6 +160,62 @@ describe('analytics tools', () => {
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
+
+    it('adds SMS warnings when message_type is text_message and open metrics requested', async () => {
+      const analytics = {
+        data: [{ id: '910092', metrics: [{ metric: 'open_uniq', value: 3 }] }],
+      };
+      mocks.getAnalytics.mockResolvedValue(analytics);
+
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['910092'],
+        metrics: ['open', 'open_uniq', 'click_uniq'],
+        message_type: 'text_message',
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.data).toEqual(analytics.data);
+      expect(parsed.warnings).toEqual([
+        { field: 'open', note: expect.stringContaining('SMS') },
+        { field: 'open_uniq', note: expect.stringContaining('SMS') },
+      ]);
+    });
+
+    it('does not add SMS warnings when text_message request omits open metrics', async () => {
+      mocks.getAnalytics.mockResolvedValue({ data: [] });
+
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['910092'],
+        metrics: ['click', 'click_uniq', 'sent'],
+        message_type: 'text_message',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.warnings).toBeUndefined();
+    });
+
+    it('does not add SMS warnings when message_type is email', async () => {
+      mocks.getAnalytics.mockResolvedValue({ data: [] });
+
+      const result = await handlers['rule_get_analytics']({
+        date_from: '2025-01-01',
+        date_to: '2025-01-31',
+        object_type: 'CAMPAIGN',
+        object_ids: ['910092'],
+        metrics: ['open', 'open_uniq'],
+        message_type: 'email',
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.warnings).toBeUndefined();
+    });
   });
 
   describe('rule_export_data', () => {
