@@ -16,6 +16,29 @@ export const createSubscriberSchema = z.object({
     .describe('Subscriber status (default: ACTIVE)'),
 });
 
+/** Schema for rule_list_subscribers_by_tag tool inputs. */
+export const listSubscribersByTagSchema = z.object({
+  tag_ids: z
+    .array(z.number().int())
+    .min(1)
+    .describe('Tag IDs the subscriber must ALL have (intersection). Non-empty.'),
+  limit: z
+    .number()
+    .int()
+    .min(1)
+    .max(1000)
+    .optional()
+    .default(500)
+    .describe('Subscribers scanned per page (default 500, max 1000)'),
+  page: z
+    .number()
+    .int()
+    .min(1)
+    .optional()
+    .default(1)
+    .describe('Page to scan (default 1). Pass the returned "next_page" to continue.'),
+});
+
 /** Schema for rule_manage_subscriber_tags tool inputs. */
 export const manageSubscriberTagsSchema = z.object({
   subscriber: z.string().describe('Subscriber identifier (email, ID, or phone number)'),

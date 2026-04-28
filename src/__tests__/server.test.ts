@@ -60,6 +60,7 @@ const EXPECTED_TOOLS = [
   'rule_manage_subscriber_tags',
   'rule_bulk_manage_tags',
   'rule_set_subscriber_fields',
+  'rule_list_subscribers_by_tag',
   'rule_block_subscribers',
 ] as const;
 
@@ -96,7 +97,7 @@ describe('createServer', () => {
     expect(server).toBeDefined();
   });
 
-  it('registers all 36 expected tools', () => {
+  it('registers all 37 expected tools', () => {
     createServer({
       apiKey: 'test-key',
       debug: false,

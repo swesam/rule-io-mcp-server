@@ -54,7 +54,7 @@ That's it. The server starts automatically when Claude needs it.
 
 ## Tools
 
-36 tools organized into 7 categories.
+37 tools organized into 7 categories.
 
 ### Tags
 
@@ -73,6 +73,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_manage_subscriber_tags` | Add or remove tags from a subscriber | `subscriber`, `identified_by?`, `action`, `tags`, `trigger_automation?` |
 | `rule_bulk_manage_tags` | Bulk add/remove tags for multiple subscribers | `action`, `tags`, `subscribers[{ email?, phone_number? }]`, `trigger_automation?` |
 | `rule_set_subscriber_fields` | Set custom field data on a subscriber | `subscriber_id`, `groups[{ group, values[{ field, value, historical? }] }]` |
+| `rule_list_subscribers_by_tag` | List subscribers having ALL given tag IDs (AND / intersection) | `tag_ids[]`, `limit?`, `page?` |
 | `rule_block_subscribers` | Block or unblock multiple subscribers | `action`, `subscribers[{ email? \| phone_number? \| id? }]` |
 
 ### Automations
