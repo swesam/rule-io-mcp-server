@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   createSubscriberSchema,
+  listSubscribersByTagSchema,
   manageSubscriberTagsSchema,
   createCampaignEmailBaseSchema,
   createCampaignEmailSchema,
@@ -160,6 +161,68 @@ describe('manageSubscriberTagsSchema', () => {
       tags: ['tag1'],
       trigger_automation: 'always',
     });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// rule_list_subscribers_by_tag
+// ---------------------------------------------------------------------------
+describe('listSubscribersByTagSchema', () => {
+  it('accepts a single tag id with defaults applied', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [10] });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.limit).toBe(100);
+      expect(result.data.page).toBe(1);
+    }
+  });
+
+  it('accepts multiple tag ids with explicit limit and page', () => {
+    const result = listSubscribersByTagSchema.safeParse({
+      tag_ids: [10, 20, 30],
+      limit: 500,
+      page: 3,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.limit).toBe(500);
+      expect(result.data.page).toBe(3);
+    }
+  });
+
+  it('rejects empty tag_ids array', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [] });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects missing tag_ids', () => {
+    const result = listSubscribersByTagSchema.safeParse({});
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-integer tag ids', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1.5] });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-numeric tag ids', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: ['abc'] });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects zero limit', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1], limit: 0 });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects zero page', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1], page: 0 });
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects non-integer limit', () => {
+    const result = listSubscribersByTagSchema.safeParse({ tag_ids: [1], limit: 50.5 });
     expect(result.success).toBe(false);
   });
 });

@@ -2,7 +2,11 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult } from '../util/errors.js';
-import { createSubscriberSchema, manageSubscriberTagsSchema } from './schemas.js';
+import {
+  createSubscriberSchema,
+  listSubscribersByTagSchema,
+  manageSubscriberTagsSchema,
+} from './schemas.js';
 
 export function registerSubscriberTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -195,20 +199,7 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
   server.tool(
     'rule_list_subscribers_by_tag',
     'List subscribers that have ALL of the given tag IDs (intersection/AND semantics). Rule.io does not support server-side tag filtering, so this scans one page of subscribers and filters client-side — caller drives pagination by passing the returned "next_page" back in until it returns null. Use rule_list_tags to find tag IDs.',
-    {
-      tag_ids: z
-        .array(z.number())
-        .min(1)
-        .describe('Tag IDs the subscriber must ALL have (intersection). Non-empty.'),
-      limit: z
-        .number()
-        .optional()
-        .describe('Subscribers scanned per page (default 100, max ~1000)'),
-      page: z
-        .number()
-        .optional()
-        .describe('Page to scan (default 1). Pass the returned "next_page" to continue.'),
-    },
+    listSubscribersByTagSchema.shape,
     async ({ tag_ids, limit, page }) => {
       try {
         const result = await client.listSubscribersByTagIds({ tag_ids, limit, page });

@@ -388,6 +388,9 @@ describe('subscriber tools', () => {
     });
 
     it('passes optional limit and page through when omitted', async () => {
+      // Handlers are captured directly — Zod defaults (100, 1) are applied
+      // by the MCP SDK at input-parse time, which is bypassed here. The
+      // schema-level defaults are exercised in schemas.test.ts.
       mocks.listSubscribersByTagIds.mockResolvedValue({
         subscribers: [],
         matched: 0,
