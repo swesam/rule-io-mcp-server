@@ -330,7 +330,7 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
               templateId: id,
               listPage: (page, per_page) => client.listAutomations({ page, per_page }),
               dispatcherType: 'automail',
-              toResult: (automation): AutomationOwner => ({
+              toResult: (automation, _message): AutomationOwner => ({
                 kind: 'automation',
                 id: automation.id as number,
                 name: automation.name,
