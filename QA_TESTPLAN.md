@@ -1,7 +1,7 @@
 # Guided QA Walkthrough: Rule.io MCP in Claude Desktop
 
 ## Context
-Testing all 35 tools, 7 resources, and 9 prompts as a marketer in Claude Desktop. Server is already running. I'll walk you through each step — paste the prompts, report back what happened, and we'll move to the next one.
+Testing all 37 tools, 7 resources, and 9 prompts as a marketer in Claude Desktop. Server is already running. I'll walk you through each step — paste the prompts, report back what happened, and we'll move to the next one.
 
 ---
 
@@ -52,6 +52,12 @@ This is the big test — it creates 4 resources in one call. Use a brand style I
 
 **What to look for:** `rule_list_automations` then `rule_get_automation`.
 
+Then exercise the `include_analytics` flag added in PR #48/#53:
+
+> **Prompt:** "Show me that automation again and include its open and click metrics for the last 30 days."
+
+**What to look for:** `rule_get_automation` called with `include_analytics: { date_from, date_to, metrics: ["open", "click"] }`. Response should carry an `analytics` array (possibly empty for a brand-new automation) alongside the main automation payload — no separate `rule_get_analytics` call needed.
+
 ---
 
 ## Step 6: Create a Campaign Email
@@ -83,6 +89,10 @@ This is the big test — it creates 4 resources in one call. Use a brand style I
 > **Prompt (account-wide):** "Export my email statistics for the last 30 days"
 
 **What to look for:** `rule_export_data` with type `statistics` and a 30-day date range. This is the correct tool for account-wide summaries (no object IDs needed).
+
+> **Prompt (inline analytics):** "Show me the April Newsletter campaign's details with open and click metrics for the last 30 days in one go."
+
+**What to look for:** Single `rule_get_campaign` call with `include_analytics: { date_from, date_to, metrics: ["open", "click"] }` (PR #48/#53). Response includes both the campaign payload and an `analytics` array. If the analytics fetch fails, the response carries `analytics: []` plus an `analytics_error` string — the main campaign payload should still be intact.
 
 ---
 
@@ -220,6 +230,169 @@ Clean up all test data from the extended testing. Note: there is no `rule_delete
 > **Prompt:** "Delete the test subscribers qa-test@example.com and qa-test2@example.com. Then list my tags so I can confirm whether the test tags (qa-bulk-1, qa-bulk-2) still exist and need manual removal."
 
 **What to look for:** `rule_delete_subscriber` for each subscriber, then `rule_list_tags` to check for leftover test tags. If they exist, remove them manually in the Rule.io UI.
+
+---
+
+## Step 21: Tag Lookup by Name
+Quick check that the name-to-ID helper returns a real ID for an existing tag (pick one from Step 1).
+
+> **Prompt:** "Find the tag ID for '[TAG_NAME]'"
+
+**What to look for:** `rule_find_tag` with the name, returning `{ id, name }`.
+
+Then the miss path:
+
+> **Prompt:** "Find the tag ID for 'this-tag-definitely-does-not-exist-xyz'"
+
+**What to look for:** `rule_find_tag` returning a friendly not-found message — not an error result.
+
+---
+
+## Step 22: Segments
+> **Prompt:** "List my subscriber segments"
+
+**What to look for:** `rule_list_segments`. Note: segments are not created via MCP — this is a read-only check.
+
+---
+
+## Step 23: Non-Email Campaign Lifecycle
+This exercises the campaign tools that the email-wrapper (`rule_create_campaign_email`) skips over.
+
+> **Prompt:** "Create a blank campaign called 'QA Blank Campaign' (no recipients, no template yet)"
+
+**What to look for:** `rule_create_campaign` with the name. Note the returned campaign ID.
+
+Then inspect, update, schedule/cancel, and delete it:
+
+> **Prompt:** "Show me campaign [ID] in detail"
+
+**What to look for:** `rule_get_campaign` with the ID. Response should include `message_type` on the campaign record.
+
+> **Prompt:** "Rename campaign [ID] to 'QA Blank Campaign (renamed)' and change it to transactional"
+
+**What to look for:** `rule_update_campaign` with `name` and `sendout_type: "transactional"`.
+
+> **Prompt:** "Schedule campaign [ID] to send on 2099-12-31 at 10:00, then immediately cancel that schedule"
+
+**What to look for:** Two `rule_schedule_campaign` calls — first with `action: "schedule"` + `datetime`, then with `action: "cancel"`. Verify the "schedule without datetime" error path by asking Claude to schedule without a datetime:
+
+> **Prompt:** "Schedule campaign [ID] — no specific time, just schedule it"
+
+**What to look for:** Either Claude asks for a datetime, or `rule_schedule_campaign` returns an error about `datetime` being required when action is `schedule`.
+
+Finally clean up:
+
+> **Prompt:** "Delete campaign [ID]"
+
+**What to look for:** `rule_delete_campaign`.
+
+---
+
+## Step 24: Automation Pause / Resume
+Needs an existing automation. If Step 12 deleted them all, create a fresh one using any tag from Step 1 before running this step.
+
+> **Prompt:** "Pause automation [ID]"
+
+**What to look for:** `rule_update_automation` with `active: false`.
+
+> **Prompt:** "Reactivate automation [ID]"
+
+**What to look for:** `rule_update_automation` with `active: true`. Then delete it with `rule_delete_automation` when done.
+
+---
+
+## Step 25: Template Read & Delete
+Pick a template ID from Step 8's `rule_list_templates` output.
+
+> **Prompt:** "Show me the full RCML content of template [ID]"
+
+**What to look for:** `rule_get_template` returning the template with its content.
+
+If you have a disposable test template (e.g. one left over from a prior QA run), delete it:
+
+> **Prompt:** "Delete template [ID]"
+
+**What to look for:** `rule_delete_template`. Do NOT run this against a template that's still linked to a live campaign or automation — use Step 26 first to check ownership.
+
+Note: `rule_create_template` is not exercised manually here because it requires a pre-existing `message_id`. It's covered by the integration test suite; if you need to hit it manually, pull a `message_id` from the last `rule_create_campaign_email` response.
+
+---
+
+## Step 26: Template Ownership Lookup (NEW — PR #49/#54/#55/#56)
+`rule_find_template_usage` resolves the single campaign or automation that owns a given template. Each template has at most one owner.
+
+> **Prompt:** "Which campaign or automation is using template [ID]?"
+
+**What to look for:** `rule_find_template_usage` returning `{ template_id, owner, scanned: { campaigns, automations } }`. The `owner` is either a `{ kind: "campaign", id, name, subject, status }` object, a `{ kind: "automation", id, name, active, trigger_type }` object, or `null` for an unowned/orphaned template. If any dispatchers failed to scan, a `partial_errors` array is included.
+
+Now the orphan path — use a template ID that is not linked to any live dispatcher (ask Claude to list templates and pick one that doesn't appear in any campaign/automation):
+
+> **Prompt:** "Check if template [ORPHAN_ID] has an owner"
+
+**What to look for:** `owner: null` in the response, with `scanned.campaigns` and `scanned.automations` both reflecting a full walk of each list (equal to the dispatcher counts in your account — non-zero on a typical QA account).
+
+---
+
+## Step 27: List Subscribers by Tag (NEW — PR #50/#59)
+Requires at least one subscriber carrying a given tag. Use a tag from Step 1 that you know has subscribers (or reuse `qa-bulk-1` / `qa-bulk-2` from Step 13 if those subscribers still exist — if you ran Step 20, recreate the subscribers first).
+
+First resolve the tag's numeric ID via `rule_find_tag` (Step 21), then:
+
+> **Prompt:** "List subscribers who have tag ID [TAG_ID]"
+
+**What to look for:** `rule_list_subscribers_by_tag` with `tag_ids: [TAG_ID]`. Response should include the matching subscribers and a pagination cursor.
+
+Then the intersection path (subscribers that have **all** provided tags):
+
+> **Prompt:** "List subscribers who have BOTH tag ID [TAG_ID_1] AND tag ID [TAG_ID_2]"
+
+**What to look for:** `rule_list_subscribers_by_tag` with `tag_ids: [ID_1, ID_2]` — results should be the intersection, not the union.
+
+Validation check:
+
+> **Prompt:** "List subscribers who have no tags"
+
+**What to look for:** Claude should either push back (tag_ids is non-empty) or the tool should return a Zod validation error saying `tag_ids` must have at least one entry.
+
+---
+
+## Step 28: Brand Style Management
+> **Prompt:** "Create a brand style from the domain anthropic.com and call it 'QA Brand Test'"
+
+**What to look for:** `rule_manage_brand_style` with `action: "create_from_domain"` and the domain. Note the returned brand style ID.
+
+> **Prompt:** "Show me the full details (colours, fonts, links) of brand style [ID]"
+
+**What to look for:** `rule_get_brand_style` returning colours, fonts, images, and links.
+
+> **Prompt:** "Rename brand style [ID] to 'QA Brand Test (renamed)'"
+
+**What to look for:** `rule_manage_brand_style` with `action: "update"`, `id`, and `name`.
+
+> **Prompt:** "Delete brand style [ID]"
+
+**What to look for:** `rule_manage_brand_style` with `action: "delete"` and `id`.
+
+Error path — missing required arg:
+
+> **Prompt:** "Create a brand style manually (no name, no colours, no fonts)"
+
+**What to look for:** Friendly error — `name is required for create_manual action.`
+
+---
+
+## Step 29: SMS Analytics Warnings (PR #57/#58)
+Rule.io doesn't track opens on SMS campaigns. The server warns when you request open metrics on an SMS object.
+
+> **Prompt:** "Get analytics for campaign [ANY_CAMPAIGN_ID] over the last 30 days. Request opens and clicks, and specify message_type text_message."
+
+**What to look for:** `rule_get_analytics` called with `message_type: "text_message"` and `metrics: ["open", "click"]` (or `open_uniq`). Response should include a `warnings` array with one entry per SMS-unsupported metric (`open`, `open_uniq`), each noting that the returned value is an artefact and should not be reported. The campaign ID itself does not need to be an actual SMS campaign for the warning to surface — the warning is driven by the requested `message_type` + metric combination.
+
+Negative check:
+
+> **Prompt:** "Get click-only analytics for campaign [ID] over the last 30 days, message_type text_message"
+
+**What to look for:** No `warnings` array — only SMS-unsupported metrics (`open`, `open_uniq`) trigger warnings. `click` alone is fine.
 
 ---
 
