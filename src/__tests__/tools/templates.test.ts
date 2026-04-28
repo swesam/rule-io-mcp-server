@@ -311,6 +311,39 @@ describe('template tools', () => {
       expect(mocks.listAutomations).not.toHaveBeenCalled();
     });
 
+    it('stops paginating automations once a match is found on page 1', async () => {
+      mocks.listCampaigns.mockResolvedValue({ data: [] });
+
+      // Full page of 100 automations — without break pageLoop the scanner
+      // would fetch page 2 since length === PER_PAGE.
+      const page1Automations = Array.from({ length: 100 }, (_, i) => ({
+        id: 1000 + i,
+        name: `A${i + 1}`,
+        active: true,
+      }));
+
+      mocks.listAutomations.mockResolvedValueOnce({ data: page1Automations });
+
+      // First 99 automations own a different template; automation 100 owns template 42.
+      for (let i = 0; i < 99; i++) {
+        mocks.listMessages.mockResolvedValueOnce({ data: [{ id: 2000 + i, subject: `E${i + 1}` }] });
+        mocks.listDynamicSets.mockResolvedValueOnce({ data: [{ template_id: 99 }] });
+      }
+      mocks.listMessages.mockResolvedValueOnce({ data: [{ id: 2099, subject: 'E100' }] });
+      mocks.listDynamicSets.mockResolvedValueOnce({ data: [{ template_id: 42 }] });
+
+      const result = await handlers['rule_find_template_usage']({ id: 42 });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.owner?.kind).toBe('automation');
+      expect(parsed.owner?.id).toBe(1099);
+      expect(parsed.scanned.campaigns).toBe(0);
+      expect(parsed.scanned.automations).toBe(100);
+      // Page loop must terminate on match — no second page fetched.
+      expect(mocks.listAutomations).toHaveBeenCalledTimes(1);
+    });
+
     it('records partial errors and still finds a later owner in the same pass', async () => {
       mocks.listCampaigns.mockResolvedValue({
         data: [
