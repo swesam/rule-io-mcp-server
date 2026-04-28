@@ -4,7 +4,7 @@ import type { RuleClient } from 'rule-io-sdk';
 import { handleRuleError, jsonResult, textResult, errorResult } from '../util/errors.js';
 import { applyTemplateConfig } from '../util/template-config.js';
 import { createCampaignEmailBaseSchema, createCampaignEmailSchema } from './schemas.js';
-import { fetchAnalyticsFor, includeAnalyticsSchema } from './analytics.js';
+import { fetchAnalyticsFor, includeAnalyticsSchema, MESSAGE_TYPES } from './analytics.js';
 
 export function registerCampaignTools(server: McpServer, client: RuleClient): void {
   server.tool(
@@ -51,7 +51,7 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_get_campaign',
-    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged.',
+    'Get detailed information about a specific campaign by ID. Optionally include analytics metrics for the campaign. When include_analytics is provided, the response always contains an "analytics" array; if the analytics fetch fails (auth, rate limit, etc.) "analytics" is [] and an "analytics_error" string describes the failure. The main campaign payload is unchanged. For SMS (text_message) campaigns, an "analytics_warnings" array may be included when open-related metrics such as "open" or "open_uniq" were requested, flagging those metrics as artefacts (Rule.io does not track opens on SMS).',
     {
       id: z.number().describe('Campaign ID'),
       include_analytics: includeAnalyticsSchema
@@ -67,7 +67,26 @@ export function registerCampaignTools(server: McpServer, client: RuleClient): vo
         if (!include_analytics) {
           return jsonResult(result);
         }
-        const merge = await fetchAnalyticsFor(client, 'CAMPAIGN', id, include_analytics);
+        // Handle both SDK response shapes: wrapped `{ data: campaign }`
+        // (current RuleCampaignResponse contract) and the flatter shape that
+        // some tests and historical responses use. Either way, message_type
+        // may be absent, in which case we pass no hint.
+        const campaign = (result.data ?? result) as {
+          message_type?: { key?: string };
+        };
+        const messageTypeKey = campaign.message_type?.key;
+        const messageTypeHint = (MESSAGE_TYPES as readonly string[]).includes(
+          messageTypeKey ?? '',
+        )
+          ? (messageTypeKey as (typeof MESSAGE_TYPES)[number])
+          : undefined;
+        const merge = await fetchAnalyticsFor(
+          client,
+          'CAMPAIGN',
+          id,
+          include_analytics,
+          messageTypeHint,
+        );
         return jsonResult({ ...result, ...merge });
       } catch (error) {
         return handleRuleError(error);

@@ -311,6 +311,109 @@ describe('campaign tools', () => {
       const parsed = JSON.parse(result.content[0].text);
       expect(parsed.analytics).toEqual([]);
     });
+
+    it('adds analytics_warnings when the campaign is SMS and open metrics were requested', async () => {
+      // getCampaign returns RuleCampaignResponse — campaign lives under `data`.
+      const campaignResponse = {
+        data: {
+          id: 1,
+          name: 'SMS Blast',
+          message_type: { value: 2, key: 'text_message', description: 'SMS' },
+        },
+      };
+      mocks.getCampaign.mockResolvedValue(campaignResponse);
+      mocks.getAnalytics.mockResolvedValue({ data: [{ id: '1', metrics: [] }] });
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open_uniq', 'click_uniq'],
+        },
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.analytics_warnings).toEqual([
+        { field: 'open_uniq', note: expect.stringContaining('SMS') },
+      ]);
+    });
+
+    it('does not add analytics_warnings when SMS campaign requests only click metrics', async () => {
+      const campaignResponse = {
+        data: {
+          id: 1,
+          name: 'SMS Blast',
+          message_type: { value: 2, key: 'text_message', description: 'SMS' },
+        },
+      };
+      mocks.getCampaign.mockResolvedValue(campaignResponse);
+      mocks.getAnalytics.mockResolvedValue({ data: [{ id: '1', metrics: [] }] });
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['click_uniq', 'sent'],
+        },
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.analytics_warnings).toBeUndefined();
+    });
+
+    it('detects SMS message_type on the flatter campaign shape (no data wrapper)', async () => {
+      // Some older / partial responses surface message_type at the top level
+      // rather than under `data`. The handler must handle both shapes so SMS
+      // warnings are not silently dropped when the wrapper is absent.
+      const flatCampaign = {
+        id: 1,
+        name: 'SMS Blast',
+        message_type: { value: 2, key: 'text_message', description: 'SMS' },
+      };
+      mocks.getCampaign.mockResolvedValue(flatCampaign);
+      mocks.getAnalytics.mockResolvedValue({ data: [{ id: '1', metrics: [] }] });
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open_uniq'],
+        },
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.analytics_warnings).toEqual([
+        { field: 'open_uniq', note: expect.stringContaining('SMS') },
+      ]);
+    });
+
+    it('does not add analytics_warnings when the campaign is an email', async () => {
+      const campaignResponse = {
+        data: {
+          id: 1,
+          name: 'Email Newsletter',
+          message_type: { value: 1, key: 'email', description: 'Email' },
+        },
+      };
+      mocks.getCampaign.mockResolvedValue(campaignResponse);
+      mocks.getAnalytics.mockResolvedValue({ data: [{ id: '1', metrics: [] }] });
+
+      const result = await handlers['rule_get_campaign']({
+        id: 1,
+        include_analytics: {
+          date_from: '2025-01-01',
+          date_to: '2025-01-31',
+          metrics: ['open', 'open_uniq'],
+        },
+      });
+
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.analytics_warnings).toBeUndefined();
+    });
   });
 
   describe('rule_update_campaign', () => {
