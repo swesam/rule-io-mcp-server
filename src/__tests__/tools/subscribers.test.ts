@@ -17,6 +17,7 @@ interface MockClient {
   blockSubscribers: ReturnType<typeof vi.fn>;
   unblockSubscribers: ReturnType<typeof vi.fn>;
   createCustomFieldData: ReturnType<typeof vi.fn>;
+  listSubscribersByTagIds: ReturnType<typeof vi.fn>;
   asClient: RuleClient;
 }
 
@@ -34,6 +35,7 @@ function createMockClient(): MockClient {
     blockSubscribers: vi.fn(),
     unblockSubscribers: vi.fn(),
     createCustomFieldData: vi.fn(),
+    listSubscribersByTagIds: vi.fn(),
   };
   return { ...mocks, asClient: mocks as unknown as RuleClient };
 }
@@ -336,6 +338,83 @@ describe('subscriber tools', () => {
       });
 
       expect(result.isError).toBe(true);
+    });
+  });
+
+  describe('rule_list_subscribers_by_tag', () => {
+    it('returns matched subscribers and pagination cursor', async () => {
+      const sdkResult = {
+        subscribers: [
+          { id: 1, email: 'a@example.com', tags: [{ id: 10 }, { id: 20 }] },
+          { id: 2, email: 'b@example.com', tags: [{ id: 10 }, { id: 20 }] },
+        ],
+        matched: 2,
+        scanned: 100,
+        next_page: 2,
+      };
+      mocks.listSubscribersByTagIds.mockResolvedValue(sdkResult);
+
+      const result = await handlers['rule_list_subscribers_by_tag']({
+        tag_ids: [10, 20],
+        limit: 100,
+        page: 1,
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(JSON.parse(result.content[0].text)).toEqual(sdkResult);
+      expect(mocks.listSubscribersByTagIds).toHaveBeenCalledWith({
+        tag_ids: [10, 20],
+        limit: 100,
+        page: 1,
+      });
+    });
+
+    it('returns empty matches with null next_page at end of pagination', async () => {
+      mocks.listSubscribersByTagIds.mockResolvedValue({
+        subscribers: [],
+        matched: 0,
+        scanned: 37,
+        next_page: null,
+      });
+
+      const result = await handlers['rule_list_subscribers_by_tag']({
+        tag_ids: [10],
+      });
+
+      expect(result.isError).toBeUndefined();
+      const parsed = JSON.parse(result.content[0].text);
+      expect(parsed.matched).toBe(0);
+      expect(parsed.next_page).toBeNull();
+    });
+
+    it('passes optional limit and page through when omitted', async () => {
+      mocks.listSubscribersByTagIds.mockResolvedValue({
+        subscribers: [],
+        matched: 0,
+        scanned: 0,
+        next_page: null,
+      });
+
+      await handlers['rule_list_subscribers_by_tag']({
+        tag_ids: [42],
+      });
+
+      expect(mocks.listSubscribersByTagIds).toHaveBeenCalledWith({
+        tag_ids: [42],
+        limit: undefined,
+        page: undefined,
+      });
+    });
+
+    it('returns isError on API failure', async () => {
+      mocks.listSubscribersByTagIds.mockRejectedValue(new RuleApiError('Server Error', 500));
+
+      const result = await handlers['rule_list_subscribers_by_tag']({
+        tag_ids: [10],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('Rule.io API error (500)');
     });
   });
 });

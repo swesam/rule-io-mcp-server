@@ -193,6 +193,33 @@ export function registerSubscriberTools(server: McpServer, client: RuleClient): 
   );
 
   server.tool(
+    'rule_list_subscribers_by_tag',
+    'List subscribers that have ALL of the given tag IDs (intersection/AND semantics). Rule.io does not support server-side tag filtering, so this scans one page of subscribers and filters client-side — caller drives pagination by passing the returned "next_page" back in until it returns null. Use rule_list_tags to find tag IDs.',
+    {
+      tag_ids: z
+        .array(z.number())
+        .min(1)
+        .describe('Tag IDs the subscriber must ALL have (intersection). Non-empty.'),
+      limit: z
+        .number()
+        .optional()
+        .describe('Subscribers scanned per page (default 100, max ~1000)'),
+      page: z
+        .number()
+        .optional()
+        .describe('Page to scan (default 1). Pass the returned "next_page" to continue.'),
+    },
+    async ({ tag_ids, limit, page }) => {
+      try {
+        const result = await client.listSubscribersByTagIds({ tag_ids, limit, page });
+        return jsonResult(result);
+      } catch (error) {
+        return handleRuleError(error);
+      }
+    }
+  );
+
+  server.tool(
     'rule_block_subscribers',
     'Block or unblock multiple subscribers. Blocking prevents emails from being sent to these subscribers. This is an async operation processed in the background by Rule.io.',
     {
