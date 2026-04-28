@@ -80,23 +80,26 @@ interface ScanDispatchersOptions<D extends DispatcherLike, R> {
 
 /**
  * Paginate `listPage` and, for each dispatcher, resolve whether any of its
- * messages reference `templateId`. Returns the matching result items and
- * the number of dispatchers scanned; per-item failures are appended to the
- * shared `partialErrors` array rather than aborting the scan.
+ * messages reference `templateId`. A template has at most one owner
+ * (campaigns/automations are 1:1 with templates), so the scan stops at
+ * the first match — inner message loop, outer dispatcher loop, and the
+ * page loop all terminate. Returns the match (or `null`) and the number
+ * of dispatchers scanned; per-item failures are appended to the shared
+ * `partialErrors` array rather than aborting the scan.
  */
 async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
   client: RuleClient,
   options: ScanDispatchersOptions<D, R>,
   partialErrors: PartialError[],
-): Promise<{ matches: R[]; scanned: number }> {
+): Promise<{ match: R | null; scanned: number }> {
   const { kind, templateId, listPage, dispatcherType, toResult } = options;
   const PER_PAGE = 100;
 
-  const matches: R[] = [];
+  let match: R | null = null;
   let scanned = 0;
   let page = 1;
 
-  while (true) {
+  pageLoop: while (true) {
     const result = await listPage(page, PER_PAGE);
     if (!result.data || result.data.length === 0) break;
 
@@ -116,8 +119,8 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
           try {
             const resolvedTemplateId = await resolveTemplateIdForMessage(client, message.id);
             if (resolvedTemplateId === templateId) {
-              matches.push(toResult(dispatcher, message));
-              break; // stop at first matching message for this dispatcher
+              match = toResult(dispatcher, message);
+              break pageLoop;
             }
           } catch (error) {
             // Auth / rate-limit failures are systemic — continuing would
@@ -147,7 +150,7 @@ async function scanDispatchersForTemplate<D extends DispatcherLike, R>(
     page += 1;
   }
 
-  return { matches, scanned };
+  return { match, scanned };
 }
 
 export function registerTemplateTools(server: McpServer, client: RuleClient): void {
@@ -269,7 +272,7 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
 
   server.tool(
     'rule_find_template_usage',
-    'Find campaigns and automations that use a given template. Expensive on large accounts — fetches all campaigns and automations, then resolves their messages. Consider caching.',
+    'Find the single campaign or automation that owns a given template. Returns { owner: null } if the template is unused (including orphaned templates pending Rule.io\'s CRON cleanup). Rule.io has no direct template→owner endpoint, so this scans dispatchers in order (campaigns first, then automations) and stops at the first match. Typical accounts: one full dispatcher list is scanned. Worst case (unowned template): full scan of both lists.',
     {
       id: z.number().describe('Template ID'),
     },
@@ -277,44 +280,55 @@ export function registerTemplateTools(server: McpServer, client: RuleClient): vo
       try {
         const partialErrors: PartialError[] = [];
 
-        const { matches: campaigns, scanned: campaignsScanned } = await scanDispatchersForTemplate(
-          client,
-          {
-            kind: 'campaign',
-            templateId: id,
-            listPage: (page, per_page) => client.listCampaigns({ page, per_page }),
-            dispatcherType: 'campaign',
-            toResult: (campaign, message) => ({
-              id: campaign.id as number,
-              name: campaign.name,
-              subject: message.subject,
-              status: campaign.status?.toString(),
-            }),
-          },
-          partialErrors,
-        );
+        const { match: campaignOwner, scanned: campaignsScanned } =
+          await scanDispatchersForTemplate(
+            client,
+            {
+              kind: 'campaign',
+              templateId: id,
+              listPage: (page, per_page) => client.listCampaigns({ page, per_page }),
+              dispatcherType: 'campaign',
+              toResult: (campaign, message) => ({
+                kind: 'campaign' as const,
+                id: campaign.id as number,
+                name: campaign.name,
+                subject: message.subject,
+                status: campaign.status?.toString(),
+              }),
+            },
+            partialErrors,
+          );
 
-        const { matches: automations, scanned: automationsScanned } = await scanDispatchersForTemplate(
-          client,
-          {
-            kind: 'automation',
-            templateId: id,
-            listPage: (page, per_page) => client.listAutomations({ page, per_page }),
-            dispatcherType: 'automail',
-            toResult: (automation) => ({
-              id: automation.id as number,
-              name: automation.name,
-              active: automation.active,
-              trigger_type: automation.trigger?.type,
-            }),
-          },
-          partialErrors,
-        );
+        let owner: Record<string, unknown> | null = campaignOwner;
+        let automationsScanned = 0;
+
+        // 1:1 invariant: if a campaign owns the template, no automation can.
+        // Skip the automations pass entirely.
+        if (!owner) {
+          const { match: automationOwner, scanned } = await scanDispatchersForTemplate(
+            client,
+            {
+              kind: 'automation',
+              templateId: id,
+              listPage: (page, per_page) => client.listAutomations({ page, per_page }),
+              dispatcherType: 'automail',
+              toResult: (automation) => ({
+                kind: 'automation' as const,
+                id: automation.id as number,
+                name: automation.name,
+                active: automation.active,
+                trigger_type: automation.trigger?.type,
+              }),
+            },
+            partialErrors,
+          );
+          owner = automationOwner;
+          automationsScanned = scanned;
+        }
 
         const result: Record<string, unknown> = {
           template_id: id,
-          campaigns,
-          automations,
+          owner,
           scanned: {
             campaigns: campaignsScanned,
             automations: automationsScanned,
