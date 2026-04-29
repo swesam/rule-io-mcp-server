@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { defineConfig } from 'vitest/config';
 
-const pkg = JSON.parse(readFileSync('./package.json', 'utf8')) as { version: string };
+const pkgUrl = new URL('./package.json', import.meta.url);
+const pkg = JSON.parse(readFileSync(pkgUrl, 'utf8')) as { version: string };
 
 export default defineConfig({
   define: {
