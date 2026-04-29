@@ -320,14 +320,14 @@ When running from a local clone (instead of via `npx`), point at the **bin entry
 }
 ```
 
-> **Why not `dist/index.js`?** The library entry point uses an `import.meta.url` guard to avoid running when imported. Since tsup compiles to CJS, `import.meta.url` is undefined at runtime, and the process crashes. The bin entry point (`dist/bin/rule-io-mcp.js`) calls `main()` directly and is designed to be run as a CLI.
+> **Why not `dist/index.js`?** That's the library entry — it only exports `main()` for programmatic use. The bin entry point (`dist/bin/rule-io-mcp.js`) is the CLI shim that actually invokes `main()`.
 
 ---
 
 ## Links
 
 - [Rule.io API documentation](https://rule.se/apidoc/)
-- [rule-io-sdk](https://github.com/swesam/rule-io-sdk) — The underlying SDK this server wraps
+- [rule-io-sdk](https://github.com/rulecom/rule-io-sdk) — The underlying SDK this server wraps
 - [Model Context Protocol specification](https://modelcontextprotocol.io/)
 
 ---
