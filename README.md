@@ -82,7 +82,7 @@ That's it. The server starts automatically when Claude needs it.
 |------|-------------|------------|
 | `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template`, `sendout_type?` |
 | `rule_list_automations` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
-| `rule_get_automation` | Get automation details by ID | `id` |
+| `rule_get_automation` | Get automation details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics[], message_type? }` |
 | `rule_update_automation` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
 | `rule_delete_automation` | Delete an automation | `id` |
 
@@ -93,7 +93,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
 | `rule_create_campaign_email` | Create a complete campaign with email in one step | `name`, `subject`, `tags` or `segments` or `subscribers`, `template` or `brand_style_id` |
 | `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
-| `rule_get_campaign` | Get campaign details by ID | `id` |
+| `rule_get_campaign` | Get campaign details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics[], message_type? }` |
 | `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
 | `rule_delete_campaign` | Delete a campaign | `id` |
 | `rule_copy_campaign` | Duplicate an existing campaign | `id` |
@@ -115,7 +115,7 @@ That's it. The server starts automatically when Claude needs it.
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
-| `rule_get_analytics` | Get per-object performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type`, `object_ids`, `metrics` |
+| `rule_get_analytics` | Get per-object performance metrics for any dispatcher type — campaigns, automations, A/B tests, transactional sends, journeys (see `object_type`) | `date_from`, `date_to`, `object_type`, `object_ids[]`, `metrics[]`, `message_type?` |
 | `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to`, `next_page_token?` |
 
 ### Admin
@@ -275,9 +275,9 @@ The campaign `subject` also lives on the message resource, not the campaign itse
 
 Rule.io has no native `market` / `country` / `brand` attribute on campaigns, automations, segments, or tags. Multi-market accounts typically encode market into a name prefix (e.g. `SE-`, `DK-`, `FI-`) and parse it client-side.
 
-### SMS analytics: `click_uniq` ≈ `open_uniq`
+### SMS analytics: no open tracking
 
-SMS has no native "open" event. For `text_message` campaigns, the Rule.io platform may report `click_uniq` and `open_uniq` as identical. Treat SMS open metrics with caution until Rule.io documents the exact behaviour.
+SMS has no native "open" event — any `open_uniq` on a `text_message` campaign is an artefact of the underlying storage. When you call `rule_get_analytics` with `message_type: "text_message"` and request `open` or `open_uniq`, the response adds a `warnings` array flagging those fields as artefacts (the raw values still come through — we don't strip them). The same annotation surfaces as `analytics_warnings` on the `include_analytics` merge path, with one asymmetry to know about: `rule_get_campaign` infers `message_type` from the campaign record, so SMS campaigns trigger the warning automatically; `rule_get_automation` does **not** currently infer it, so callers need to set `include_analytics.message_type: "text_message"` explicitly to get the warning on SMS automations. Treat `click_uniq` as the engagement signal for SMS.
 
 ### Read-only deployments
 
@@ -285,7 +285,7 @@ Rule.io API keys do not currently carry a read-only scope. If you want to run th
 
 ### Rate limits
 
-Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. If you call this server from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. Rule.io may return a `Retry-After` header on 429 responses, but this server does not currently surface the header or its value through tool responses — consumers see the fixed friendly message `Rate limited by Rule.io API. Please wait a moment and retry.` with no retry timestamp. If you call this server from a high-concurrency orchestrator, prefer conservative concurrency and backoff-on-429 over aggressive parallelism.
 
 ---
 
