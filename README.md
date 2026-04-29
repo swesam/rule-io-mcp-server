@@ -82,7 +82,7 @@ That's it. The server starts automatically when Claude needs it.
 |------|-------------|------------|
 | `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template`, `sendout_type?` |
 | `rule_list_automations` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
-| `rule_get_automation` | Get automation details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics, message_type? }` |
+| `rule_get_automation` | Get automation details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics[], message_type? }` |
 | `rule_update_automation` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
 | `rule_delete_automation` | Delete an automation | `id` |
 
@@ -93,7 +93,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
 | `rule_create_campaign_email` | Create a complete campaign with email in one step | `name`, `subject`, `tags` or `segments` or `subscribers`, `template` or `brand_style_id` |
 | `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
-| `rule_get_campaign` | Get campaign details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics, message_type? }` |
+| `rule_get_campaign` | Get campaign details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics[], message_type? }` |
 | `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
 | `rule_delete_campaign` | Delete a campaign | `id` |
 | `rule_copy_campaign` | Duplicate an existing campaign | `id` |
@@ -115,7 +115,7 @@ That's it. The server starts automatically when Claude needs it.
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
-| `rule_get_analytics` | Get per-object performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type`, `object_ids`, `metrics` |
+| `rule_get_analytics` | Get per-object performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type`, `object_ids[]`, `metrics[]`, `message_type?` |
 | `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to`, `next_page_token?` |
 
 ### Admin
