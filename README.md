@@ -82,7 +82,7 @@ That's it. The server starts automatically when Claude needs it.
 |------|-------------|------------|
 | `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template`, `sendout_type?` |
 | `rule_list_automations` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
-| `rule_get_automation` | Get automation details by ID | `id` |
+| `rule_get_automation` | Get automation details by ID, optionally merged with analytics metrics | `id`, `include_analytics?` |
 | `rule_update_automation` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
 | `rule_delete_automation` | Delete an automation | `id` |
 
@@ -93,7 +93,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
 | `rule_create_campaign_email` | Create a complete campaign with email in one step | `name`, `subject`, `tags` or `segments` or `subscribers`, `template` or `brand_style_id` |
 | `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
-| `rule_get_campaign` | Get campaign details by ID | `id` |
+| `rule_get_campaign` | Get campaign details by ID, optionally merged with analytics metrics | `id`, `include_analytics?` |
 | `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
 | `rule_delete_campaign` | Delete a campaign | `id` |
 | `rule_copy_campaign` | Duplicate an existing campaign | `id` |
@@ -275,9 +275,9 @@ The campaign `subject` also lives on the message resource, not the campaign itse
 
 Rule.io has no native `market` / `country` / `brand` attribute on campaigns, automations, segments, or tags. Multi-market accounts typically encode market into a name prefix (e.g. `SE-`, `DK-`, `FI-`) and parse it client-side.
 
-### SMS analytics: `click_uniq` ≈ `open_uniq`
+### SMS analytics: no open tracking
 
-SMS has no native "open" event. For `text_message` campaigns, the Rule.io platform may report `click_uniq` and `open_uniq` as identical. Treat SMS open metrics with caution until Rule.io documents the exact behaviour.
+SMS has no native "open" event — any `open_uniq` on a `text_message` campaign is an artefact of the underlying storage. When you call `rule_get_analytics` with `message_type: "text_message"` and request `open` or `open_uniq`, the response adds a `warnings` array flagging those fields as artefacts (the raw values still come through — we don't strip them). When the same check fires through the `include_analytics` flag on `rule_get_campaign` / `rule_get_automation`, the annotation surfaces as `analytics_warnings`. Treat `click_uniq` as the engagement signal for SMS.
 
 ### Read-only deployments
 
@@ -285,7 +285,7 @@ Rule.io API keys do not currently carry a read-only scope. If you want to run th
 
 ### Rate limits
 
-Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. If you call this server from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. 429 responses do include a `Retry-After` header, so reactive backoff is straightforward; if you call this server from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
 
 ---
 
