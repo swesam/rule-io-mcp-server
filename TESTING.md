@@ -28,18 +28,10 @@ Manual and automated testing instructions for the rule-io-mcp-server.
 - **Node.js** >= 20
 - **npm** >= 9
 - A **Rule.io API key** (set as `RULE_IO_API_KEY`)
-- The **rule-io-sdk** sibling dependency must be available locally (this project uses `file:../rule-io-sdk`):
-
-```bash
-# Clone and build the SDK if you haven't already
-git clone https://github.com/swesam/rule-io-sdk.git ../rule-io-sdk
-cd ../rule-io-sdk && npm install && npm run build && cd -
-```
-
 - The project must be built before running the inspector:
 
 ```bash
-npm install
+npm install   # pulls rule-io-sdk from git+https://github.com/rulecom/rule-io-sdk.git#v0.4.0 and builds it
 npm run build
 ```
 
@@ -50,7 +42,7 @@ npm run build
 Launch the MCP Inspector with the server's start command:
 
 ```bash
-npx @modelcontextprotocol/inspector node dist/index.js
+npx @modelcontextprotocol/inspector node dist/bin/rule-io-mcp.js
 ```
 
 When the Inspector UI opens in your browser, add the environment variable:
@@ -749,7 +741,7 @@ The server requires the `RULE_IO_API_KEY` environment variable. In MCP Inspector
 RULE_IO_API_KEY=your_key_here npm run start
 ```
 
-### "Cannot find module dist/index.js"
+### "Cannot find module dist/bin/rule-io-mcp.js"
 
 The project needs to be built before running. Run:
 
@@ -760,7 +752,7 @@ npm run build
 ### Inspector fails to connect
 
 1. Make sure the server is not already running on another terminal.
-2. Verify the command in the Inspector is `node` with argument `dist/index.js` (not `npm run start`).
+2. Verify the command in the Inspector is `node` with argument `dist/bin/rule-io-mcp.js` (not `npm run start` and not `dist/index.js` — the latter is the library entry, not the CLI).
 3. Check the Inspector terminal output for error messages.
 
 ### API errors (401 Unauthorized)
