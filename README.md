@@ -277,7 +277,7 @@ Rule.io has no native `market` / `country` / `brand` attribute on campaigns, aut
 
 ### SMS analytics: no open tracking
 
-SMS has no native "open" event — any `open_uniq` on a `text_message` campaign is an artefact of the underlying storage. When you call `rule_get_analytics` with `message_type: "text_message"` and request `open` or `open_uniq`, the response adds a `warnings` array flagging those fields as artefacts (the raw values still come through — we don't strip them). When the same check fires through the `include_analytics` flag on `rule_get_campaign` / `rule_get_automation`, the annotation surfaces as `analytics_warnings`. Treat `click_uniq` as the engagement signal for SMS.
+SMS has no native "open" event — any `open_uniq` on a `text_message` campaign is an artefact of the underlying storage. When you call `rule_get_analytics` with `message_type: "text_message"` and request `open` or `open_uniq`, the response adds a `warnings` array flagging those fields as artefacts (the raw values still come through — we don't strip them). The same annotation surfaces as `analytics_warnings` on the `include_analytics` merge path, with one asymmetry to know about: `rule_get_campaign` infers `message_type` from the campaign record, so SMS campaigns trigger the warning automatically; `rule_get_automation` does **not** currently infer it, so callers need to set `include_analytics.message_type: "text_message"` explicitly to get the warning on SMS automations. Treat `click_uniq` as the engagement signal for SMS.
 
 ### Read-only deployments
 
@@ -285,7 +285,7 @@ Rule.io API keys do not currently carry a read-only scope. If you want to run th
 
 ### Rate limits
 
-Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. The SDK reads the `Retry-After` header on 429 responses internally (logs only; the value isn't currently attached to `RuleApiError` or surfaced through MCP tool responses), so tool consumers see a generic `Rule.io API error (429): Rate limited by Rule.io API` string. If you call this server from a high-concurrency orchestrator, prefer conservative concurrency and backoff-on-429 over aggressive parallelism.
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. The SDK reads the `Retry-After` header on 429 responses internally (logs only; the value isn't currently attached to `RuleApiError` or surfaced through MCP tool responses), so tool consumers see the fixed friendly message `Rate limited by Rule.io API. Please wait a moment and retry.` rather than a retry-able timestamp. If you call this server from a high-concurrency orchestrator, prefer conservative concurrency and backoff-on-429 over aggressive parallelism.
 
 ---
 
