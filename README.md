@@ -285,7 +285,7 @@ Rule.io API keys do not currently carry a read-only scope. If you want to run th
 
 ### Rate limits
 
-Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. The SDK reads the `Retry-After` header on 429 responses internally (logs only; the value isn't currently attached to `RuleApiError` or surfaced through MCP tool responses), so tool consumers see the fixed friendly message `Rate limited by Rule.io API. Please wait a moment and retry.` rather than a retry-able timestamp. If you call this server from a high-concurrency orchestrator, prefer conservative concurrency and backoff-on-429 over aggressive parallelism.
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. Rule.io may return a `Retry-After` header on 429 responses, but this server does not currently surface the header or its value through tool responses — consumers see the fixed friendly message `Rate limited by Rule.io API. Please wait a moment and retry.` and no retry-able timestamp. If you call this server from a high-concurrency orchestrator, prefer conservative concurrency and backoff-on-429 over aggressive parallelism.
 
 ---
 
