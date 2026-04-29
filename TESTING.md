@@ -31,7 +31,7 @@ Manual and automated testing instructions for the rule-io-mcp-server.
 - The project must be built before running the inspector:
 
 ```bash
-npm install   # pulls rule-io-sdk from github:rulecom/rule-io-sdk#v0.4.0 and builds it
+npm install   # pulls rule-io-sdk from git+https://github.com/rulecom/rule-io-sdk.git#v0.4.0 and builds it
 npm run build
 ```
 
