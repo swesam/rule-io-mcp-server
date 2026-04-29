@@ -82,7 +82,7 @@ That's it. The server starts automatically when Claude needs it.
 |------|-------------|------------|
 | `rule_create_automation_email` | Create complete email automation in one step | `name`, `trigger_tag`, `subject`, `template`, `sendout_type?` |
 | `rule_list_automations` | List email automations | `active?`, `query?`, `page?`, `per_page?` |
-| `rule_get_automation` | Get automation details by ID, optionally merged with analytics metrics | `id`, `include_analytics?` |
+| `rule_get_automation` | Get automation details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics, message_type? }` |
 | `rule_update_automation` | Update an automation | `id`, `active?`, `sendout_type?`, `trigger_type?`, `trigger_id?` |
 | `rule_delete_automation` | Delete an automation | `id` |
 
@@ -93,7 +93,7 @@ That's it. The server starts automatically when Claude needs it.
 | `rule_create_campaign` | Create a one-off email campaign | `name?`, `sendout_type?` |
 | `rule_create_campaign_email` | Create a complete campaign with email in one step | `name`, `subject`, `tags` or `segments` or `subscribers`, `template` or `brand_style_id` |
 | `rule_list_campaigns` | List campaigns | `page?`, `per_page?` |
-| `rule_get_campaign` | Get campaign details by ID, optionally merged with analytics metrics | `id`, `include_analytics?` |
+| `rule_get_campaign` | Get campaign details by ID, optionally merged with analytics metrics | `id`, `include_analytics?{ date_from, date_to, metrics, message_type? }` |
 | `rule_update_campaign` | Update a campaign | `id`, `name?`, `sendout_type?` |
 | `rule_delete_campaign` | Delete a campaign | `id` |
 | `rule_copy_campaign` | Duplicate an existing campaign | `id` |
@@ -285,7 +285,7 @@ Rule.io API keys do not currently carry a read-only scope. If you want to run th
 
 ### Rate limits
 
-Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. 429 responses do include a `Retry-After` header, so reactive backoff is straightforward; if you call this server from a high-concurrency orchestrator, prefer backoff-on-429 over aggressive parallelism.
+Rule.io has not published formal rate limits. Most tools here issue one Rule.io request each, but a few fan out internally — notably `rule_get_subscriber`, which runs three requests in parallel. The SDK reads the `Retry-After` header on 429 responses internally (logs only; the value isn't currently attached to `RuleApiError` or surfaced through MCP tool responses), so tool consumers see a generic `Rule.io API error (429): Rate limited by Rule.io API` string. If you call this server from a high-concurrency orchestrator, prefer conservative concurrency and backoff-on-429 over aggressive parallelism.
 
 ---
 
