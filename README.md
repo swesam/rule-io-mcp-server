@@ -115,7 +115,7 @@ That's it. The server starts automatically when Claude needs it.
 
 | Tool | Description | Key Inputs |
 |------|-------------|------------|
-| `rule_get_analytics` | Get per-object performance metrics for campaigns/automations | `date_from`, `date_to`, `object_type`, `object_ids[]`, `metrics[]`, `message_type?` |
+| `rule_get_analytics` | Get per-object performance metrics for any dispatcher type — campaigns, automations, A/B tests, transactional sends, journeys (see `object_type`) | `date_from`, `date_to`, `object_type`, `object_ids[]`, `metrics[]`, `message_type?` |
 | `rule_export_data` | Export dispatchers, statistics, or subscribers | `type`, `date_from`, `date_to`, `next_page_token?` |
 
 ### Admin
